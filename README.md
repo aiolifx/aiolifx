@@ -20,7 +20,7 @@ Essentially, you create an object with at least 2 methods:
     - register
     - unregister
 
-You then start the LifxDiscovery task in asyncio. It will register any new light is finds.
+You then start the LifxDiscovery task in asyncio. It will register any new light it finds.
 All the method communicating with the bulb can be passed a callback function to react to 
 the bulb response. The callback should take 2 parameters:
 
@@ -75,7 +75,7 @@ In essence, the test program is this
 
 Other things worth noting:
     
-    -  Whilst LifsDiscover uses UDP broadcast, the bulbs are
+    -  Whilst LifxDiscover uses UDP broadcast, the bulbs are
        connected with Unicast UDP
        
     - The connection to the bulb is never closed. I've been using that
