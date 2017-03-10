@@ -129,13 +129,14 @@ class Device(aio.DatagramProtocol):
     #
    
 
-    async def fire_sending(self,msg,num_repeats):
+    @aio.coroutine
+    def fire_sending(self,msg,num_repeats):
         sent_msg_count = 0
         sleep_interval = 0.05 if num_repeats > 20 else 0
         while(sent_msg_count < num_repeats):
             self.transport.sendto(msg.packed_message)
             sent_msg_count += 1
-            await aio.sleep(sleep_interval) # Max num of messages device can handle is 20 per second.
+            yield from aio.sleep(sleep_interval) # Max num of messages device can handle is 20 per second.
 
     # Don't wait for Acks or Responses, just send the same message repeatedly as fast as possible
     def fire_and_forget(self, msg_type, payload={}, timeout_secs=DEFAULT_TIMEOUT, num_repeats=DEFAULT_ATTEMPTS):
@@ -144,7 +145,8 @@ class Device(aio.DatagramProtocol):
         return True
 
 
-    async def try_sending(self,msg,timeout_secs, max_attempts):
+    @aio.coroutine
+    def try_sending(self,msg,timeout_secs, max_attempts):
         attempts = 0
         while attempts < max_attempts:
             if msg.seq_num not in self.message: return
@@ -153,7 +155,7 @@ class Device(aio.DatagramProtocol):
             attempts += 1
             self.transport.sendto(msg.packed_message)
             try:
-                myresult = await aio.wait_for(event.wait(),timeout_secs)
+                myresult = yield from aio.wait_for(event.wait(),timeout_secs)
                 break
             except Exception as inst:
                 pass
