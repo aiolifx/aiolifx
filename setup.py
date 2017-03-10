@@ -4,13 +4,13 @@ from distutils.core import setup
 
 setup(name='aiolifx',
     packages=['aiolifx'],
-    version='0.4.0',
+    version='0.4.1',
     author='François Wautier',
     author_email='francois@wautier.eu',
     description='API for local communication with LIFX devices over a LAN with asyncio.',
     url='http://github.com/frawau/aiolifx',
-    download_url='http://github.com/frawau/aiolifx/archive/aiolifx/0.4.0.tar.gz',  
-    keywords = ['lifx', 'light', 'example'], 
+    download_url='http://github.com/frawau/aiolifx/archive/aiolifx/0.4.1.tar.gz',  
+    keywords = ['lifx', 'light', 'automation'], 
     license='MIT',
     install_requires=[
     "bitstring",
@@ -23,5 +23,5 @@ setup(name='aiolifx',
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5'
+        'Programming Language :: Python :: 3.4'
     ])

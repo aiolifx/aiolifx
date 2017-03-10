@@ -1,0 +1,6 @@
+0.4.0   Initial release
+
+0.4.1   Added support for python 3.4
+        Does cause an error message when installing
+        with 3.4. This error message does not affect 
+        operation.

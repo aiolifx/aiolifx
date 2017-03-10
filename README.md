@@ -7,11 +7,15 @@ and adapted to Python 3 (and asyncio obviously)
 
 # Installation
 
-Download this, go to the directory and do 
+We are on PyPi so
 
-        python3 -m pip install .
-        
-Seems to do the trick
+     pip3 install aiolifx
+or
+     python3 -m pip install aiolifx
+     
+NOTE: When installing with Python 3.4, the installation produce an error message
+      (syntax error). This can be safely ignored. 
+
 
 # How to use
 
@@ -78,13 +82,13 @@ Other things worth noting:
     -  Whilst LifxDiscover uses UDP broadcast, the bulbs are
        connected with Unicast UDP
        
-    - The connection to the bulb is never closed. I've been using that
-      for days with no problem
+    - The socket connecting to a bulb is not closed unless the bulb is deemed to have
+      gone the way of the Dodo. I've been using that for days with no problem
        
     - You can select to used IPv6 connection to the bulbs by passing an
       IPv6 prefix to LifxDiscover. It's only been tried with /64 prefix.
       If you want to use a /48 prefix, add ":" (colon) at the end of the 
-      prefix and pray
+      prefix and pray. (This means 2 colons at the end!)
       
     - I only have Original 1000, so I could not test with other types
       of bulbs
