@@ -81,6 +81,7 @@ class Device(aio.DatagramProtocol):
         self.host_firmware_build_timestamp = None
         self.wifi_firmware_version = None
         self.wifi_firmware_build_timestamp = None
+        self.lastmsg=datetime.datetime.now()-datetime.timedelta(seconds=600)
         
     def seq_next(self):
         self.seq = ( self.seq + 1 ) % 128
@@ -98,6 +99,7 @@ class Device(aio.DatagramProtocol):
     def datagram_received(self, data, addr):
         response = unpack_lifx_message(data)
         if response.seq_num in self.message:
+            self.lastmsg=datetime.datetime.now()
             response_type,myevent,callb = self.message[response.seq_num]
 
             if type(response) == response_type:
@@ -160,8 +162,11 @@ class Device(aio.DatagramProtocol):
         if attempts >= max_attempts:
             if msg.seq_num in self.message:
                 del(self.message[msg.seq_num])
-            #It's dead Jim
-            self.connection_lost(None)
+            #Only if we have not received any message recently.
+            #On slower CPU, a race condition seem to sometime occur
+            if datetime.datetime.now()-datetime.timedelta(seconds=DEFAULT_TIMEOUT) > self.lastmsg:
+                #It's dead Jim
+                self.connection_lost(None)
 
     # Usually used for Set messages
     def req_with_ack(self, msg_type, payload, callb = None, timeout_secs=DEFAULT_TIMEOUT, max_attempts=DEFAULT_ATTEMPTS):
