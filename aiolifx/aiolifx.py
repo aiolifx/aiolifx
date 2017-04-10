@@ -529,7 +529,7 @@ class Light(Device):
     
 class LifxDiscovery(aio.DatagramProtocol):
 
-    def __init__(self, loop, parent=None,retry_count=3,timeout=0.5,ipv6prefix=None,discovery_interval=180):
+    def __init__(self, loop, parent=None,retry_count=3,timeout=0.5,ipv6prefix=None,discovery_interval=DISCOVERY_INTERVAL):
         self.lights = [] #Know devices mac addresses
         self.parent = parent #Where to register new devices
         self.transport = None
@@ -594,7 +594,7 @@ class LifxDiscovery(aio.DatagramProtocol):
         if len(self.timeout)>1:
             self.timeout=self.timeout[1:]
         else:
-            self.timeout=[DISCOVERY_INTERVAL]
+            self.timeout=[self.discovery_interval]
             
     def connection_lost(self,e):
         print ("Ooops lost connection")
