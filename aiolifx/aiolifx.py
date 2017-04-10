@@ -160,15 +160,14 @@ class Device(aio.DatagramProtocol):
                 myresult = await aio.wait_for(event.wait(),timeout_secs)
                 break
             except Exception as inst:
-                pass
-        if attempts >= max_attempts:
-            if msg.seq_num in self.message:
-                del(self.message[msg.seq_num])
-            #Only if we have not received any message recently.
-            #On slower CPU, a race condition seem to sometime occur
-            if datetime.datetime.now()-datetime.timedelta(seconds=DEFAULT_TIMEOUT) > self.lastmsg:
-                #It's dead Jim
-                self.connection_lost(None)
+                if attempts >= max_attempts:
+                    if msg.seq_num in self.message:
+                        del(self.message[msg.seq_num])
+                    #Only if we have not received any message recently.
+                    #On slower CPU, a race condition seem to sometime occur
+                    if datetime.datetime.now()-datetime.timedelta(seconds=DEFAULT_TIMEOUT) > self.lastmsg:
+                        #It's dead Jim
+                        self.connection_lost(None)
 
     # Usually used for Set messages
     def req_with_ack(self, msg_type, payload, callb = None, timeout_secs=DEFAULT_TIMEOUT, max_attempts=DEFAULT_ATTEMPTS):
