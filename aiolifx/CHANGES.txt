@@ -4,3 +4,11 @@
         Does cause an error message when installing
         with 3.4. This error message does not affect 
         operation.
+0.4.2
+0.4.3  Mostly an apparent race condition on slower cpu
+
+0.4.4  Thanks to Anders Melchiorsen
+       close transport on lost connection
+       use discovery_interval correctly
+       make sure that the reply to last attempt at sending
+       a command is handled correctly

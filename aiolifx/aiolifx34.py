@@ -101,7 +101,6 @@ class Device(aio.DatagramProtocol):
         if response.seq_num in self.message:
             self.lastmsg=datetime.datetime.now()
             response_type,myevent,callb = self.message[response.seq_num]
-
             if type(response) == response_type:
                 if response.origin == 1 and response.source_id == self.source_id:
                     self.ip_addr = addr
@@ -123,9 +122,12 @@ class Device(aio.DatagramProtocol):
         print('Error received:', exc)
 
     def connection_lost(self, exc):
+        if self.transport:
+            self.transport.close()
+            self.transport = None
         if self.parent:
             self.parent.unregister(self)
-        
+            
     #
     #                            Workflow Methods
     #
@@ -158,15 +160,14 @@ class Device(aio.DatagramProtocol):
                 myresult = yield from aio.wait_for(event.wait(),timeout_secs)
                 break
             except Exception as inst:
-                pass
-        if attempts >= max_attempts:
-            if msg.seq_num in self.message:
-                del(self.message[msg.seq_num])
-            #Only if we have not received any message recently.
-            #On slower CPU, a race condition seem to sometime occur
-            if datetime.datetime.now()-datetime.timedelta(seconds=DEFAULT_TIMEOUT) > self.lastmsg:
-                #It's dead Jim
-                self.connection_lost(None)
+                if attempts >= max_attempts:
+                    if msg.seq_num in self.message:
+                        del(self.message[msg.seq_num])
+                    #Only if we have not received any message recently.
+                    #On slower CPU, a race condition seem to sometime occur
+                    if datetime.datetime.now()-datetime.timedelta(seconds=DEFAULT_TIMEOUT) > self.lastmsg:
+                        #It's dead Jim
+                        self.connection_lost(None)
 
     # Usually used for Set messages
     def req_with_ack(self, msg_type, payload, callb = None, timeout_secs=DEFAULT_TIMEOUT, max_attempts=DEFAULT_ATTEMPTS):
@@ -530,7 +531,7 @@ class Light(Device):
     
 class LifxDiscovery(aio.DatagramProtocol):
 
-    def __init__(self, loop, parent=None,retry_count=3,timeout=0.5,ipv6prefix=None,discovery_interval=180):
+    def __init__(self, loop, parent=None,retry_count=3,timeout=0.5,ipv6prefix=None,discovery_interval=DISCOVERY_INTERVAL):
         self.lights = [] #Know devices mac addresses
         self.parent = parent #Where to register new devices
         self.transport = None
@@ -595,7 +596,7 @@ class LifxDiscovery(aio.DatagramProtocol):
         if len(self.timeout)>1:
             self.timeout=self.timeout[1:]
         else:
-            self.timeout=[DISCOVERY_INTERVAL]
+            self.timeout=[self.discovery_interval]
             
     def connection_lost(self,e):
         print ("Ooops lost connection")
