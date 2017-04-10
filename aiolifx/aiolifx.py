@@ -122,6 +122,9 @@ class Device(aio.DatagramProtocol):
         print('Error received:', exc)
 
     def connection_lost(self, exc):
+        if self.transport:
+            self.transport.close()
+            self.transport = None
         if self.parent:
             self.parent.unregister(self)
             
