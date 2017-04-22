@@ -469,7 +469,7 @@ class MultiZoneStateMultiZone(Message):
         index = little_endian(bitstring.pack("8", self.index))
         payload = count + index
         for color in self.color:
-            payload += "".join(little_endian(bitstring.pack("16", field)) for field in color)
+            payload += b"".join(little_endian(bitstring.pack("16", field)) for field in color)
         return payload
 
 class MultiZoneStateZone(Message): #503
