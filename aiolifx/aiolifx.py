@@ -139,6 +139,8 @@ class Device(aio.DatagramProtocol):
         while(sent_msg_count < num_repeats):
             if self.transport:
                 self.transport.sendto(msg.packed_message)
+            else:
+                break
             sent_msg_count += 1
             await aio.sleep(sleep_interval) # Max num of messages device can handle is 20 per second.
 
@@ -158,6 +160,8 @@ class Device(aio.DatagramProtocol):
             attempts += 1
             if self.transport:
                 self.transport.sendto(msg.packed_message)
+            else:
+                attempts = max_attempts
             try:
                 myresult = await aio.wait_for(event.wait(),timeout_secs)
                 break
