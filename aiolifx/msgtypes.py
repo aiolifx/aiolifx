@@ -104,7 +104,7 @@ class StateWifiInfo(Message):
         signal = little_endian(bitstring.pack("32", self.signal))
         tx = little_endian(bitstring.pack("32", self.tx))
         rx = little_endian(bitstring.pack("32", self.rx))
-        reserved1 = little_endian(bitstring.pack("16", self.reserved1))
+        reserved1 = little_endian(bitstring.pack("int:16", self.reserved1))
         payload = signal + tx + rx + reserved1
         return payload
 
