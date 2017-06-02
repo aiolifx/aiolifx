@@ -102,7 +102,7 @@ class Device(aio.DatagramProtocol):
             self.lastmsg=datetime.datetime.now()
             response_type,myevent,callb = self.message[response.seq_num]
             if type(response) == response_type:
-                if response.origin == 1 and response.source_id == self.source_id:
+                if response.source_id == self.source_id:
                     self.ip_addr = addr
                     if "State" in response.__class__.__name__:
                         setmethod="resp_set_"+response.__class__.__name__.replace("State","").lower()
