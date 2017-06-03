@@ -418,6 +418,7 @@ class Light(Device):
         mac_addr = mac_addr.lower()
         super(Light, self).__init__(loop, mac_addr, ip_addr, port, parent)
         self.color = None
+        self.color_zones = None
         self.infrared_brightness = None
 
     def get_power(self,callb=None):
@@ -485,6 +486,38 @@ class Light(Device):
             self.color = resp.color
             self.label = resp.label.decode().replace("\x00", "")
  
+    # Multizone
+    def get_color_zones(self, start_index, end_index=None, callb=None):
+        if end_index is None:
+            end_index = start_index + 8
+        args = {
+            "start_index": start_index,
+            "end_index": end_index,
+        }
+        self.req_with_resp(MultiZoneGetColorZones, MultiZoneStateMultiZone, payload=args, callb=callb)
+
+    def set_color_zones(self, start_index, end_index, color, duration=0, apply=1, callb=None, rapid=False):
+        if len(color) == 4:
+            args = {
+                "start_index": start_index,
+                "end_index": end_index,
+                "color": color,
+                "duration": duration,
+                "apply": apply,
+            }
+
+            if rapid:
+                self.fire_and_forget(MultiZoneSetColorZones, args, callb=callb, num_repeats=1)
+            else:
+                self.req_with_ack(MultiZoneSetColorZones, args, callb=callb)
+
+    # A multi-zone MultiZoneGetColorZones returns MultiZoneStateMultiZone -> multizonemultizone
+    def resp_set_multizonemultizone(self, resp):
+        if self.color_zones is None:
+            self.color_zones = [None] * resp.count
+        for i in range(0, 8):
+            self.color_zones[resp.index + i] = resp.color[i]
+
     # value should be a dictionary with the the following keys: transient, color, period,cycles,duty_cycle,waveform
     def set_waveform(self, value, callb=None, rapid=False):
         if "color" in value and len(value["color"]) == 4:
