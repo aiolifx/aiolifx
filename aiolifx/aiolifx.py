@@ -502,8 +502,8 @@ class Light(Device):
         return self.infrared_brightness
 
     # Infrared set maximum brightness, infrared_brightness
-    def set_infrared(self, infrared_brightness, rapid=False):
-        mypartial=partial(self.resp_set_infrared,color=value)
+    def set_infrared(self, infrared_brightness, callb=None, rapid=False):
+        mypartial=partial(self.resp_set_infrared,infrared_brightness=infrared_brightness)
         if callb:
             mycallb=lambda x,y:(mypartial(y),callb(x,y))
         else:
@@ -515,11 +515,10 @@ class Light(Device):
                 callb(self,None)
         else:
             self.req_with_ack(LightSetInfrared, {"infrared_brightness": infrared_brightness}, callb=mycallb)
-
         
-    #Here light because LightState message will give light
+    #Here infrared because StateInfrared message will give infrared
     def resp_set_infrared(self, resp, infrared_brightness=None):
-        if infrared_brightness:
+        if infrared_brightness is not None:
             self.infrared_brightness = infrared_brightness
         else:
             self.infrared_brightness = resp.infrared_brightness
