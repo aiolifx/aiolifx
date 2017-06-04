@@ -69,6 +69,8 @@ class Device(aio.DatagramProtocol):
         # Key is the message sequence, value is (Response, Event, callb )
         self.message = {}
         self.source_id = random.randint(0, (2**32)-1)
+        #Default callback for unexpected messages
+        self.default_callb = None
         # And the rest
         self.label = None
         self.location = None
@@ -116,6 +118,8 @@ class Device(aio.DatagramProtocol):
                 pass
             else:
                 del(self.message[response.seq_num])
+        elif self.default_callb:
+            self.default_callb(response)
                 
 
     def error_received(self, exc):
@@ -132,6 +136,7 @@ class Device(aio.DatagramProtocol):
     #                            Workflow Methods
     #
    
+
     @aio.coroutine
     def fire_sending(self,msg,num_repeats):
         sent_msg_count = 0
@@ -149,6 +154,7 @@ class Device(aio.DatagramProtocol):
         msg = msg_type(self.mac_addr, self.source_id, seq_num=0, payload=payload, ack_requested=False, response_requested=False)
         xx=self.loop.create_task(self.fire_sending(msg,num_repeats))
         return True
+
 
     @aio.coroutine
     def try_sending(self,msg,timeout_secs, max_attempts):
@@ -410,7 +416,8 @@ class Device(aio.DatagramProtocol):
         s += indent + "Wifi RX (bytes): {}\n".format(rx)
         return s    
 
-
+    def register_callback(self,callb):
+        self.default_callb = callb
 
 class Light(Device):
     
@@ -418,6 +425,7 @@ class Light(Device):
         mac_addr = mac_addr.lower()
         super(Light, self).__init__(loop, mac_addr, ip_addr, port, parent)
         self.color = None
+        self.color_zones = None
         self.infrared_brightness = None
 
     def get_power(self,callb=None):
@@ -485,6 +493,38 @@ class Light(Device):
             self.color = resp.color
             self.label = resp.label.decode().replace("\x00", "")
  
+    # Multizone
+    def get_color_zones(self, start_index, end_index=None, callb=None):
+        if end_index is None:
+            end_index = start_index + 8
+        args = {
+            "start_index": start_index,
+            "end_index": end_index,
+        }
+        self.req_with_resp(MultiZoneGetColorZones, MultiZoneStateMultiZone, payload=args, callb=callb)
+
+    def set_color_zones(self, start_index, end_index, color, duration=0, apply=1, callb=None, rapid=False):
+        if len(color) == 4:
+            args = {
+                "start_index": start_index,
+                "end_index": end_index,
+                "color": color,
+                "duration": duration,
+                "apply": apply,
+            }
+
+            if rapid:
+                self.fire_and_forget(MultiZoneSetColorZones, args, callb=callb, num_repeats=1)
+            else:
+                self.req_with_ack(MultiZoneSetColorZones, args, callb=callb)
+
+    # A multi-zone MultiZoneGetColorZones returns MultiZoneStateMultiZone -> multizonemultizone
+    def resp_set_multizonemultizone(self, resp):
+        if self.color_zones is None:
+            self.color_zones = [None] * resp.count
+        for i in range(0, 8):
+            self.color_zones[resp.index + i] = resp.color[i]
+
     # value should be a dictionary with the the following keys: transient, color, period,cycles,duty_cycle,waveform
     def set_waveform(self, value, callb=None, rapid=False):
         if "color" in value and len(value["color"]) == 4:
@@ -502,8 +542,8 @@ class Light(Device):
         return self.infrared_brightness
 
     # Infrared set maximum brightness, infrared_brightness
-    def set_infrared(self, infrared_brightness, rapid=False):
-        mypartial=partial(self.resp_set_infrared,color=value)
+    def set_infrared(self, infrared_brightness, callb=None, rapid=False):
+        mypartial=partial(self.resp_set_infrared,infrared_brightness=infrared_brightness)
         if callb:
             mycallb=lambda x,y:(mypartial(y),callb(x,y))
         else:
@@ -515,11 +555,10 @@ class Light(Device):
                 callb(self,None)
         else:
             self.req_with_ack(LightSetInfrared, {"infrared_brightness": infrared_brightness}, callb=mycallb)
-
         
-    #Here light because LightState message will give light
+    #Here infrared because StateInfrared message will give infrared
     def resp_set_infrared(self, resp, infrared_brightness=None):
-        if infrared_brightness:
+        if infrared_brightness is not None:
             self.infrared_brightness = infrared_brightness
         else:
             self.infrared_brightness = resp.infrared_brightness

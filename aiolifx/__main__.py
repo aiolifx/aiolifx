@@ -25,6 +25,7 @@ import sys
 import asyncio as aio
 import aiolifx as alix
 from functools import partial
+import argparse
 UDP_BROADCAST_PORT = 56700
 
 #Simple bulb control frpm console
@@ -44,6 +45,7 @@ class bulbs():
         bulb.get_hostfirmware()
         self.bulbs.append(bulb)
         self.bulbs.sort(key=lambda x: x.label or x.mac_addr)
+        bulb.register_callback(lambda x,y: print("Unexpected message: %s"%str(y)))
         
     def unregister(self,bulb):
         idx=0
@@ -161,12 +163,20 @@ def readin():
     print("")
     print("Your choice: ", end='',flush=True)
   
+parser = argparse.ArgumentParser(description="Track and interact with Lifx light bulbs.")
+parser.add_argument("-6", "--ipv6prefix", default=None,
+                    help="Connect to Lifx using IPv6 with given /64 prefix (Do not end with colon unless you have less than 64bits).")
+try:
+    opts = parser.parse_args()
+except Exception as e:
+    parser.error("Error: " + str(e))
+    
 
-
+        
 MyBulbs= bulbs()
 loop = aio.get_event_loop()
 coro = loop.create_datagram_endpoint(
-            partial(alix.LifxDiscovery,loop, MyBulbs), local_addr=('0.0.0.0', UDP_BROADCAST_PORT))
+            partial(alix.LifxDiscovery,loop, MyBulbs, ipv6prefix=opts.ipv6prefix), local_addr=('0.0.0.0', UDP_BROADCAST_PORT))
 try:
     loop.add_reader(sys.stdin,readin)
     server = loop.create_task(coro)

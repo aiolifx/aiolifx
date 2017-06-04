@@ -69,6 +69,8 @@ class Device(aio.DatagramProtocol):
         # Key is the message sequence, value is (Response, Event, callb )
         self.message = {}
         self.source_id = random.randint(0, (2**32)-1)
+        #Default callback for unexpected messages
+        self.default_callb = None
         # And the rest
         self.label = None
         self.location = None
@@ -116,6 +118,8 @@ class Device(aio.DatagramProtocol):
                 pass
             else:
                 del(self.message[response.seq_num])
+        elif self.default_callb:
+            self.default_callb(response)
                 
 
     def error_received(self, exc):
@@ -410,7 +414,8 @@ class Device(aio.DatagramProtocol):
         s += indent + "Wifi RX (bytes): {}\n".format(rx)
         return s    
 
-
+    def register_callback(self,callb):
+        self.default_callb = callb
 
 class Light(Device):
     
