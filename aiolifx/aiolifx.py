@@ -122,10 +122,6 @@ class Device(aio.DatagramProtocol):
                 del(self.message[response.seq_num])
         elif self.default_callb:
             self.default_callb(response)
-                
-
-    def error_received(self, exc):
-        print('Error received:', exc)
 
     def connection_lost(self, exc):
         if self.transport:
@@ -637,14 +633,11 @@ class LifxDiscovery(aio.DatagramProtocol):
 
                 
     def discover(self):
-        msg = GetService(BROADCAST_MAC, self.source_id, seq_num=0, payload={}, ack_requested=False, response_requested=True)    
-        self.transport.sendto(msg.generate_packed_message(), (UDP_BROADCAST_IP, UDP_BROADCAST_PORT ))
-        self.loop.call_later(self.discovery_interval, self.discover)
+        if self.transport:
+            msg = GetService(BROADCAST_MAC, self.source_id, seq_num=0, payload={}, ack_requested=False, response_requested=True)    
+            self.transport.sendto(msg.generate_packed_message(), (UDP_BROADCAST_IP, UDP_BROADCAST_PORT ))
+            self.loop.call_later(self.discovery_interval, self.discover)
             
-    def connection_lost(self,e):
-        print ("Ooops lost connection")
-        self.loop.close()
-        
     def register(self,alight):
         if self.parent:
             self.parent.register(alight)
@@ -659,13 +652,8 @@ class LifxDiscovery(aio.DatagramProtocol):
             del(self.light_tp[alight.mac_addr])
         if self.parent:
             self.parent.unregister(alight)
-            
-    def cleanup(self):
-        try:
-            self.lights.remove(alight.mac_addr)
-        except:
-            pass
-        if alight.mac_addr in self.light_tp:
-            self.light_tp[alight.mac_addr].cancel()
-            del(self.light_tp[alight.mac_addr])
 
+    def cleanup(self):
+        if self.transport:
+            self.transport.close()
+            self.transport = None
