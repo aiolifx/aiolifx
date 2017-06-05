@@ -36,36 +36,22 @@ DEFAULT_TIMEOUT=0.5 # How long to wait for an ack or response
 DEFAULT_ATTEMPTS=3  # How many time shou;d we try to send to the bulb`
 DISCOVERY_INTERVAL=180
 
-def mac_to_ipv6_linklocal(mac,prefix):
-    """ Translate a MAC address into an IPv6 address in the prefixed network"""
-    
-    # Remove the most common delimiters; dots, dashes, etc.
-    mac_value = int(mac.translate(str.maketrans(dict([(x,None) for x in [" ",".",":","-"]]))),16)
-    # Split out the bytes that slot into the IPv6 address
-    # XOR the most significant byte with 0x02, inverting the 
-    # Universal / Local bit
-    high2 = mac_value >> 32 & 0xffff ^ 0x0200
-    high1 = mac_value >> 24 & 0xff
-    low1 = mac_value >> 16 & 0xff
-    low2 = mac_value & 0xffff
-    return prefix+':{:04x}:{:02x}ff:fe{:02x}:{:04x}'.format(
-        high2, high1, low1, low2)
-
 def nanosec_to_hours(ns):
     return ns/(1000000000.0*60*60)
 
-class Device(aio.DatagramProtocol):
+class Device:
     # mac_addr is a string, with the ":" and everything.
-    # ip_addr is a streing with the ip address, either IPv4 or IPv6
+    # ip_addr is a string with the ip address
     # port is the port we are connected to
-    def __init__(self, loop, mac_addr, ip_addr, port, parent=None):
+    def __init__(self, loop, transport, mac_addr, ip_addr, port, parent=None):
         self.loop = loop
+        self.transport = transport
         self.mac_addr = mac_addr
         self.inet_addr = (ip_addr, port)
         self.parent = parent
+        self.registered = False
         self.retry_count = DEFAULT_ATTEMPTS
         self.timeout = DEFAULT_TIMEOUT
-        self.transport = None
         self.seq = 0
         # Key is the message sequence, value is (Response, Event, callb )
         self.message = {}
@@ -94,12 +80,8 @@ class Device(aio.DatagramProtocol):
     #                            Protocol Methods
     #
     
-    def connection_made(self, transport):
-        self.transport = transport
-        if self.parent:
-            self.parent.register(self)
-
     def datagram_received(self, data, addr):
+        self.register()
         response = unpack_lifx_message(data)
         if response.seq_num in self.message:
             self.lastmsg=datetime.datetime.now()
@@ -122,13 +104,21 @@ class Device(aio.DatagramProtocol):
         elif self.default_callb:
             self.default_callb(response)
 
-    def connection_lost(self, exc):
-        if self.transport:
-            self.transport.close()
-            self.transport = None
-        if self.parent:
-            self.parent.unregister(self)
-            
+    def register(self):
+        if not self.registered:
+            self.registered = True
+            if self.parent:
+                self.parent.register(self)
+
+    def unregister(self):
+        if self.registered:
+            #Only if we have not received any message recently.
+            #On slower CPU, a race condition seem to sometime occur
+            if datetime.datetime.now()-datetime.timedelta(seconds=DEFAULT_TIMEOUT) > self.lastmsg:
+                self.registered = False
+                if self.parent:
+                    self.parent.unregister(self)
+
     #
     #                            Workflow Methods
     #
@@ -140,10 +130,7 @@ class Device(aio.DatagramProtocol):
         sent_msg_count = 0
         sleep_interval = 0.05
         while(sent_msg_count < num_repeats):
-            if self.transport:
-                self.transport.sendto(msg.packed_message)
-            else:
-                break
+            self.transport.sendto(msg.packed_message, self.inet_addr)
             sent_msg_count += 1
             await aio.sleep(sleep_interval) # Max num of messages device can handle is 20 per second.
 
@@ -166,10 +153,7 @@ class Device(aio.DatagramProtocol):
             event = aio.Event()
             self.message[msg.seq_num][1]= event
             attempts += 1
-            if self.transport:
-                self.transport.sendto(msg.packed_message)
-            else:
-                attempts = max_attempts
+            self.transport.sendto(msg.packed_message, self.inet_addr)
             try:
                 myresult = await aio.wait_for(event.wait(),timeout_secs)
                 break
@@ -180,11 +164,8 @@ class Device(aio.DatagramProtocol):
                         if callb:
                             callb(self, None)
                         del(self.message[msg.seq_num])
-                    #Only if we have not received any message recently.
-                    #On slower CPU, a race condition seem to sometime occur
-                    if datetime.datetime.now()-datetime.timedelta(seconds=DEFAULT_TIMEOUT) > self.lastmsg:
-                        #It's dead Jim
-                        self.connection_lost(None)
+                    #It's dead Jim
+                    self.unregister()
 
     # Usually used for Set messages
     def req_with_ack(self, msg_type, payload, callb = None, timeout_secs=None, max_attempts=None):
@@ -429,9 +410,9 @@ class Device(aio.DatagramProtocol):
 
 class Light(Device):
     
-    def __init__(self, loop, mac_addr, ip_addr, port=56700, parent=None):
+    def __init__(self, loop, transport, mac_addr, ip_addr, port=UDP_BROADCAST_PORT, parent=None):
         mac_addr = mac_addr.lower()
-        super(Light, self).__init__(loop, mac_addr, ip_addr, port, parent)
+        super(Light, self).__init__(loop, transport, mac_addr, ip_addr, port, parent)
         self.color = None
         self.color_zones = None
         self.infrared_brightness = None
@@ -585,14 +566,12 @@ class Light(Device):
     
 class LifxDiscovery(aio.DatagramProtocol):
 
-    def __init__(self, loop, parent=None,ipv6prefix=None,discovery_interval=DISCOVERY_INTERVAL):
-        self.lights = [] #Know devices mac addresses
+    def __init__(self, loop, parent=None, discovery_interval=DISCOVERY_INTERVAL):
+        self.lights = {} #Known devices indexed by mac addresses
         self.parent = parent #Where to register new devices
         self.transport = None
-        self.light_tp = {}
         self.loop = loop
         self.source_id = random.randint(0, (2**32)-1)
-        self.ipv6prefix = ipv6prefix
         self.discovery_interval=discovery_interval
 
     def connection_made(self, transport):
@@ -606,38 +585,30 @@ class LifxDiscovery(aio.DatagramProtocol):
     def datagram_received(self, data, addr):
         response = unpack_lifx_message(data)
         response.ip_addr = addr[0]
-        if type(response) == StateService and response.service == 1 : #Only look for UDP services
-            #Discovered
-            if response.target_addr not in self.lights and response.target_addr != BROADCAST_MAC:
-                self.lights.append(response.target_addr)
-                if self.ipv6prefix:
-                    coro = self.loop.create_datagram_endpoint(
-                        partial(Light,self.loop,response.target_addr, response.ip_addr, response.port, parent=self),
-                        family = socket.AF_INET6, remote_addr=(mac_to_ipv6_linklocal(response.target_addr,self.ipv6prefix), response.port))
-                else:
-                    coro = self.loop.create_datagram_endpoint(
-                        partial(Light,self.loop,response.target_addr, response.ip_addr, response.port,parent=self),
-                        family = socket.AF_INET, remote_addr=(response.ip_addr, response.port))
-                
-                self.light_tp[response.target_addr] = self.loop.create_task(coro)
-               
-        elif type(response) == LightState and response.target_addr != BROADCAST_MAC:
-            if response.target_addr not in self.lights :
-                #looks like the lights are volunteering LigthState after booting 
-                self.lights.append(response.target_addr)
-                if self.ipv6prefix:
-                    coro = self.loop.create_datagram_endpoint(
-                        partial(Light,self.loop,response.target_addr, response.ip_addr, UDP_BROADCAST_PORT, parent=self),
-                        family = socket.AF_INET6, remote_addr=(mac_to_ipv6_linklocal(response.target_addr,self.ipv6prefix), UDP_BROADCAST_PORT))
-                else:
-                    coro = self.loop.create_datagram_endpoint(
-                        partial(Light,self.loop,response.target_addr, response.ip_addr, UDP_BROADCAST_PORT,parent=self),
-                        family = socket.AF_INET, remote_addr=(response.ip_addr, UDP_BROADCAST_PORT))
-                
-                self.light_tp[response.target_addr] = self.loop.create_task(coro)
-           
 
-                
+        mac_addr = response.target_addr
+        if mac_addr == BROADCAST_MAC:
+            return
+
+        if mac_addr in self.lights:
+            # a message from a well-known light
+            self.lights[mac_addr].datagram_received(data, addr)
+
+        else:
+            remote_port = None
+
+            if type(response) == StateService and response.service == 1: # only look for UDP services
+                # discovered
+                remote_port = response.port
+            elif type(response) == LightState:
+                # looks like the lights are volunteering LigthState after booting
+                remote_port = UDP_BROADCAST_PORT
+
+            if remote_port is not None:
+                light = Light(self.loop, self.transport, mac_addr, response.ip_addr, remote_port, parent=self)
+                self.lights[mac_addr] = light
+                light.register()
+
     def discover(self):
         if self.transport:
             msg = GetService(BROADCAST_MAC, self.source_id, seq_num=0, payload={}, ack_requested=False, response_requested=True)    
@@ -649,13 +620,6 @@ class LifxDiscovery(aio.DatagramProtocol):
             self.parent.register(alight)
         
     def unregister(self,alight):
-        try:
-            self.lights.remove(alight.mac_addr)
-        except:
-            pass
-        if alight.mac_addr in self.light_tp:
-            self.light_tp[alight.mac_addr].cancel()
-            del(self.light_tp[alight.mac_addr])
         if self.parent:
             self.parent.unregister(alight)
 
