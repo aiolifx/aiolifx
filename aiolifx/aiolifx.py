@@ -61,8 +61,7 @@ class Device(aio.DatagramProtocol):
     def __init__(self, loop, mac_addr, ip_addr, port, parent=None):
         self.loop = loop
         self.mac_addr = mac_addr
-        self.port = port
-        self.ip_addr = ip_addr
+        self.inet_addr = (ip_addr, port)
         self.parent = parent
         self.retry_count = DEFAULT_ATTEMPTS
         self.timeout = DEFAULT_TIMEOUT
@@ -107,7 +106,7 @@ class Device(aio.DatagramProtocol):
             response_type,myevent,callb = self.message[response.seq_num]
             if type(response) == response_type:
                 if response.source_id == self.source_id:
-                    self.ip_addr = addr
+                    self.inet_addr = addr
                     if "State" in response.__class__.__name__:
                         setmethod="resp_set_"+response.__class__.__name__.replace("State","").lower()
                         if setmethod in dir(self) and callable(getattr(self,setmethod)):
@@ -374,8 +373,8 @@ class Device(aio.DatagramProtocol):
     def device_characteristics_str(self, indent):
         s = "{}\n".format(self.label)
         s += indent + "MAC Address: {}\n".format(self.mac_addr)
-        s += indent + "IP Address: {}\n".format(self.ip_addr and self.ip_addr[0])
-        s += indent + "Port: {}\n".format(self.port)
+        s += indent + "IP Address: {}\n".format(self.inet_addr[0])
+        s += indent + "Port: {}\n".format(self.inet_addr[1])
         s += indent + "Power: {}\n".format(str_map(self.power_level))
         s += indent + "Location: {}\n".format(self.location)
         s += indent + "Group: {}\n".format(self.group)
