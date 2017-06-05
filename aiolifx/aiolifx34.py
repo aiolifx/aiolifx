@@ -64,6 +64,8 @@ class Device(aio.DatagramProtocol):
         self.port = port
         self.ip_addr = ip_addr
         self.parent = parent
+        self.retry_count = DEFAULT_ATTEMPTS
+        self.timeout = DEFAULT_TIMEOUT
         self.transport = None
         self.seq = 0
         # Key is the message sequence, value is (Response, Event, callb )
@@ -139,8 +141,10 @@ class Device(aio.DatagramProtocol):
 
     @aio.coroutine
     def fire_sending(self,msg,num_repeats):
+        if num_repeats is None:
+            num_repeats = self.retry_count
         sent_msg_count = 0
-        sleep_interval = 0.05 if num_repeats > 20 else 0
+        sleep_interval = 0.05
         while(sent_msg_count < num_repeats):
             if self.transport:
                 self.transport.sendto(msg.packed_message)
@@ -150,7 +154,7 @@ class Device(aio.DatagramProtocol):
             yield from aio.sleep(sleep_interval) # Max num of messages device can handle is 20 per second.
 
     # Don't wait for Acks or Responses, just send the same message repeatedly as fast as possible
-    def fire_and_forget(self, msg_type, payload={}, timeout_secs=DEFAULT_TIMEOUT, num_repeats=DEFAULT_ATTEMPTS):
+    def fire_and_forget(self, msg_type, payload={}, timeout_secs=None, num_repeats=None):
         msg = msg_type(self.mac_addr, self.source_id, seq_num=0, payload=payload, ack_requested=False, response_requested=False)
         xx=self.loop.create_task(self.fire_sending(msg,num_repeats))
         return True
@@ -158,6 +162,11 @@ class Device(aio.DatagramProtocol):
 
     @aio.coroutine
     def try_sending(self,msg,timeout_secs, max_attempts):
+        if timeout_secs is None:
+            timeout_secs = self.timeout
+        if max_attempts is None:
+            max_attempts = self.retry_count
+
         attempts = 0
         while attempts < max_attempts:
             if msg.seq_num not in self.message: return
@@ -182,21 +191,21 @@ class Device(aio.DatagramProtocol):
                         self.connection_lost(None)
 
     # Usually used for Set messages
-    def req_with_ack(self, msg_type, payload, callb = None, timeout_secs=DEFAULT_TIMEOUT, max_attempts=DEFAULT_ATTEMPTS):
+    def req_with_ack(self, msg_type, payload, callb = None, timeout_secs=None, max_attempts=None):
         msg = msg_type(self.mac_addr, self.source_id, seq_num=self.seq_next(), payload=payload, ack_requested=True, response_requested=False)
         self.message[msg.seq_num]=[Acknowledgement,None,callb]
         xx=self.loop.create_task(self.try_sending(msg,timeout_secs, max_attempts))
         return True
     
     # Usually used for Get messages, or for state confirmation after Set (hence the optional payload)
-    def req_with_resp(self, msg_type, response_type, payload={}, callb = None, timeout_secs=DEFAULT_TIMEOUT, max_attempts=DEFAULT_ATTEMPTS):
+    def req_with_resp(self, msg_type, response_type, payload={}, callb = None, timeout_secs=None, max_attempts=None):
         msg = msg_type(self.mac_addr, self.source_id, seq_num=self.seq_next(), payload=payload, ack_requested=False, response_requested=True) 
         self.message[msg.seq_num]=[response_type,None,callb]
         xx=self.loop.create_task(self.try_sending(msg,timeout_secs, max_attempts))
         return True
     
     # Not currently implemented, although the LIFX LAN protocol supports this kind of workflow natively
-    def req_with_ack_resp(self, msg_type, response_type, payload, callb = None, timeout_secs=DEFAULT_TIMEOUT, max_attempts=DEFAULT_ATTEMPTS):
+    def req_with_ack_resp(self, msg_type, response_type, payload, callb = None, timeout_secs=None, max_attempts=None):
         msg = msg_type(self.mac_addr, self.source_id, seq_num=self.seq_next(), payload=payload, ack_requested=True, response_requested=True) 
         self.message[msg.seq_num]=[response_type,None,callb]
         xx=self.loop.create_task(self.try_sending(msg,timeout_secs, max_attempts))
@@ -576,15 +585,12 @@ class Light(Device):
     
 class LifxDiscovery(aio.DatagramProtocol):
 
-    def __init__(self, loop, parent=None,retry_count=3,timeout=0.5,ipv6prefix=None,discovery_interval=DISCOVERY_INTERVAL):
+    def __init__(self, loop, parent=None,ipv6prefix=None,discovery_interval=DISCOVERY_INTERVAL):
         self.lights = [] #Know devices mac addresses
         self.parent = parent #Where to register new devices
         self.transport = None
         self.light_tp = {}
         self.loop = loop
-        self.bcast_count = retry_count
-        self.retry_count = retry_count
-        self.timeout = [timeout]*retry_count
         self.source_id = random.randint(0, (2**32)-1)
         self.ipv6prefix = ipv6prefix
         self.discovery_interval=discovery_interval
@@ -635,13 +641,7 @@ class LifxDiscovery(aio.DatagramProtocol):
     def discover(self):
         msg = GetService(BROADCAST_MAC, self.source_id, seq_num=0, payload={}, ack_requested=False, response_requested=True)    
         self.transport.sendto(msg.generate_packed_message(), (UDP_BROADCAST_IP, UDP_BROADCAST_PORT ))
-        self.bcast_count -= 1
-        
-        self.loop.call_later(self.timeout[0], self.discover)
-        if len(self.timeout)>1:
-            self.timeout=self.timeout[1:]
-        else:
-            self.timeout=[self.discovery_interval]
+        self.loop.call_later(self.discovery_interval, self.discover)
             
     def connection_lost(self,e):
         print ("Ooops lost connection")
