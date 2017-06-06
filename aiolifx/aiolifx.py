@@ -176,6 +176,9 @@ class Device(aio.DatagramProtocol):
             except Exception as inst:
                 if attempts >= max_attempts:
                     if msg.seq_num in self.message:
+                        callb = self.message[msg.seq_num][2]
+                        if callb:
+                            callb(self, None)
                         del(self.message[msg.seq_num])
                     #Only if we have not received any message recently.
                     #On slower CPU, a race condition seem to sometime occur
@@ -230,7 +233,7 @@ class Device(aio.DatagramProtocol):
     def resp_set_label(self, resp, label=None):
         if label:
             self.label=label
-        else:
+        elif resp:
             self.label=resp.label.decode().replace("\x00", "") 
 
     def get_location(self,callb=None):
@@ -253,7 +256,7 @@ class Device(aio.DatagramProtocol):
     def resp_set_location(self, resp, location=None):
         if location:
             self.location=location
-        else:
+        elif resp:
             self.location=resp.label.decode().replace("\x00", "") 
             #self.resp_set_label(resp)
             
@@ -278,7 +281,7 @@ class Device(aio.DatagramProtocol):
     def resp_set_group(self, resp, group=None):
         if group:
             self.group=group
-        else:
+        elif resp:
             self.group=resp.label.decode().replace("\x00", "")
             
             
@@ -309,7 +312,7 @@ class Device(aio.DatagramProtocol):
     def resp_set_power(self, resp, power_level=None):
         if power_level is not None:
             self.power_level=power_level
-        else:
+        elif resp:
             self.power_level=resp.power_level 
             
             
@@ -324,8 +327,9 @@ class Device(aio.DatagramProtocol):
         return (self.wifi_firmware_version,self.wifi_firmware_build_timestamp)
     
     def resp_set_wififirmware(self, resp):
-        self.wifi_firmware_version = float(str(str(resp.version >> 16) + "." + str(resp.version & 0xff)))
-        self.wifi_firmware_build_timestamp = resp.build
+        if resp:
+            self.wifi_firmware_version = float(str(str(resp.version >> 16) + "." + str(resp.version & 0xff)))
+            self.wifi_firmware_build_timestamp = resp.build
     
     #Too volatile to be saved
     def get_wifiinfo(self,callb=None):
@@ -344,8 +348,9 @@ class Device(aio.DatagramProtocol):
         return (self.host_firmware_version,self.host_firmware_build_timestamp)
     
     def resp_set_hostfirmware(self, resp):
-        self.host_firmware_version = float(str(str(resp.version >> 16) + "." + str(resp.version & 0xff)))
-        self.host_firmware_build_timestamp = resp.build
+        if resp:
+            self.host_firmware_version = float(str(str(resp.version >> 16) + "." + str(resp.version & 0xff)))
+            self.host_firmware_build_timestamp = resp.build
     
     #Too volatile to be saved
     def get_hostinfo(self,callb=None):
@@ -363,9 +368,10 @@ class Device(aio.DatagramProtocol):
         return (self.host_firmware_version,self.host_firmware_build_timestamp)
     
     def resp_set_version(self, resp):
-        self.vendor = resp.vendor
-        self.product = resp.product
-        self.version = resp.version
+        if resp:
+            self.vendor = resp.vendor
+            self.product = resp.product
+            self.version = resp.version
     
     #
     #                            Formating
@@ -459,7 +465,7 @@ class Light(Device):
     def resp_set_lightpower(self, resp, power_level=None):
         if power_level is not None:
             self.power_level=power_level
-        else:
+        elif resp:
             self.power_level=resp.power_level 
             
     # LightGet, color, power_level, label
@@ -490,7 +496,7 @@ class Light(Device):
     def resp_set_light(self, resp, color=None):
         if color:
             self.color=color
-        else:
+        elif resp:
             self.power_level = resp.power_level
             self.color = resp.color
             self.label = resp.label.decode().replace("\x00", "")
@@ -522,10 +528,11 @@ class Light(Device):
 
     # A multi-zone MultiZoneGetColorZones returns MultiZoneStateMultiZone -> multizonemultizone
     def resp_set_multizonemultizone(self, resp):
-        if self.color_zones is None:
-            self.color_zones = [None] * resp.count
-        for i in range(0, 8):
-            self.color_zones[resp.index + i] = resp.color[i]
+        if resp:
+            if self.color_zones is None:
+                self.color_zones = [None] * resp.count
+            for i in range(0, 8):
+                self.color_zones[resp.index + i] = resp.color[i]
 
     # value should be a dictionary with the the following keys: transient, color, period,cycles,duty_cycle,waveform
     def set_waveform(self, value, callb=None, rapid=False):
@@ -562,7 +569,7 @@ class Light(Device):
     def resp_set_infrared(self, resp, infrared_brightness=None):
         if infrared_brightness is not None:
             self.infrared_brightness = infrared_brightness
-        else:
+        elif resp:
             self.infrared_brightness = resp.infrared_brightness
             
     def __str__(self):
