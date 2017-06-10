@@ -36,22 +36,38 @@ DEFAULT_TIMEOUT=0.5 # How long to wait for an ack or response
 DEFAULT_ATTEMPTS=3  # How many time shou;d we try to send to the bulb`
 DISCOVERY_INTERVAL=180
 
+def mac_to_ipv6_linklocal(mac,prefix):
+    """ Translate a MAC address into an IPv6 address in the prefixed network"""
+
+    # Remove the most common delimiters; dots, dashes, etc.
+    mac_value = int(mac.translate(str.maketrans(dict([(x,None) for x in [" ",".",":","-"]]))),16)
+    # Split out the bytes that slot into the IPv6 address
+    # XOR the most significant byte with 0x02, inverting the
+    # Universal / Local bit
+    high2 = mac_value >> 32 & 0xffff ^ 0x0200
+    high1 = mac_value >> 24 & 0xff
+    low1 = mac_value >> 16 & 0xff
+    low2 = mac_value & 0xffff
+    return prefix+':{:04x}:{:02x}ff:fe{:02x}:{:04x}'.format(
+        high2, high1, low1, low2)
+
 def nanosec_to_hours(ns):
     return ns/(1000000000.0*60*60)
 
-class Device:
+class Device(aio.DatagramProtocol):
     # mac_addr is a string, with the ":" and everything.
     # ip_addr is a string with the ip address
     # port is the port we are connected to
-    def __init__(self, loop, transport, mac_addr, ip_addr, port, parent=None):
+    def __init__(self, loop, mac_addr, ip_addr, port, parent=None):
         self.loop = loop
-        self.transport = transport
         self.mac_addr = mac_addr
         self.inet_addr = (ip_addr, port)
         self.parent = parent
         self.registered = False
         self.retry_count = DEFAULT_ATTEMPTS
         self.timeout = DEFAULT_TIMEOUT
+        self.transport = None
+        self.task = None
         self.seq = 0
         # Key is the message sequence, value is (Response, Event, callb )
         self.message = {}
@@ -79,7 +95,11 @@ class Device:
     #
     #                            Protocol Methods
     #
-    
+
+    def connection_made(self, transport):
+        self.transport = transport
+        self.register()
+
     def datagram_received(self, data, addr):
         self.register()
         response = unpack_lifx_message(data)
@@ -119,6 +139,14 @@ class Device:
                 if self.parent:
                     self.parent.unregister(self)
 
+    def cleanup(self):
+        if self.transport:
+            self.transport.close()
+            self.transport = None
+        if self.task:
+            self.task.cancel()
+            self.task = None
+
     #
     #                            Workflow Methods
     #
@@ -130,7 +158,7 @@ class Device:
         sent_msg_count = 0
         sleep_interval = 0.05
         while(sent_msg_count < num_repeats):
-            self.transport.sendto(msg.packed_message, self.inet_addr)
+            self.transport.sendto(msg.packed_message)
             sent_msg_count += 1
             await aio.sleep(sleep_interval) # Max num of messages device can handle is 20 per second.
 
@@ -153,7 +181,7 @@ class Device:
             event = aio.Event()
             self.message[msg.seq_num][1]= event
             attempts += 1
-            self.transport.sendto(msg.packed_message, self.inet_addr)
+            self.transport.sendto(msg.packed_message)
             try:
                 myresult = await aio.wait_for(event.wait(),timeout_secs)
                 break
@@ -410,9 +438,9 @@ class Device:
 
 class Light(Device):
     
-    def __init__(self, loop, transport, mac_addr, ip_addr, port=UDP_BROADCAST_PORT, parent=None):
+    def __init__(self, loop, mac_addr, ip_addr, port=UDP_BROADCAST_PORT, parent=None):
         mac_addr = mac_addr.lower()
-        super(Light, self).__init__(loop, transport, mac_addr, ip_addr, port, parent)
+        super(Light, self).__init__(loop, mac_addr, ip_addr, port, parent)
         self.color = None
         self.color_zones = None
         self.infrared_brightness = None
@@ -566,12 +594,13 @@ class Light(Device):
     
 class LifxDiscovery(aio.DatagramProtocol):
 
-    def __init__(self, loop, parent=None, discovery_interval=DISCOVERY_INTERVAL):
+    def __init__(self, loop, parent=None, ipv6prefix=None, discovery_interval=DISCOVERY_INTERVAL):
         self.lights = {} #Known devices indexed by mac addresses
         self.parent = parent #Where to register new devices
         self.transport = None
         self.loop = loop
         self.source_id = random.randint(0, (2**32)-1)
+        self.ipv6prefix = ipv6prefix
         self.discovery_interval=discovery_interval
 
     def connection_made(self, transport):
@@ -605,9 +634,19 @@ class LifxDiscovery(aio.DatagramProtocol):
                 remote_port = UDP_BROADCAST_PORT
 
             if remote_port is not None:
-                light = Light(self.loop, self.transport, mac_addr, response.ip_addr, remote_port, parent=self)
+                if self.ipv6prefix:
+                    family = socket.AF_INET6
+                    remote_ip = mac_to_ipv6_linklocal(mac_addr, self.ipv6prefix)
+                else:
+                    family = socket.AF_INET
+                    remote_ip = response.ip_addr
+
+                light = Light(self.loop, mac_addr, remote_ip, remote_port, parent=self)
+                coro = self.loop.create_datagram_endpoint(
+                    lambda: light, family=family, remote_addr=(remote_ip, remote_port))
                 self.lights[mac_addr] = light
-                light.register()
+
+                light.task = self.loop.create_task(coro)
 
     def discover(self):
         if self.transport:
@@ -627,3 +666,6 @@ class LifxDiscovery(aio.DatagramProtocol):
         if self.transport:
             self.transport.close()
             self.transport = None
+        for light in self.lights.values():
+            light.cleanup()
+        self.lights = {}
