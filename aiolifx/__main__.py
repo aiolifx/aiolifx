@@ -45,7 +45,8 @@ class bulbs():
         bulb.get_hostfirmware()
         self.bulbs.append(bulb)
         self.bulbs.sort(key=lambda x: x.label or x.mac_addr)
-        bulb.register_callback(lambda x,y: print("Unexpected message: %s"%str(y)))
+        if opts.extra:
+            bulb.register_callback(lambda y: print("Unexpected message: %s"%str(y)))
         
     def unregister(self,bulb):
         idx=0
@@ -166,6 +167,8 @@ def readin():
 parser = argparse.ArgumentParser(description="Track and interact with Lifx light bulbs.")
 parser.add_argument("-6", "--ipv6prefix", default=None,
                     help="Connect to Lifx using IPv6 with given /64 prefix (Do not end with colon unless you have less than 64bits).")
+parser.add_argument("-x","--extra", action='store_true', default=False,
+                    help="Print unexpected messages.")
 try:
     opts = parser.parse_args()
 except Exception as e:
