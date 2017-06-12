@@ -61,7 +61,8 @@ class Device(aio.DatagramProtocol):
     def __init__(self, loop, mac_addr, ip_addr, port, parent=None):
         self.loop = loop
         self.mac_addr = mac_addr
-        self.inet_addr = (ip_addr, port)
+        self.ip_addr = ip_addr
+        self.port = port
         self.parent = parent
         self.registered = False
         self.retry_count = DEFAULT_ATTEMPTS
@@ -88,14 +89,6 @@ class Device(aio.DatagramProtocol):
         self.wifi_firmware_build_timestamp = None
         self.lastmsg=datetime.datetime.now()-datetime.timedelta(seconds=600)
         
-    @property
-    def ip_addr(self):
-        return self.inet_addr[0]
-
-    @property
-    def port(self):
-        return self.inet_addr[1]
-        
     def seq_next(self):
         self.seq = ( self.seq + 1 ) % 128
         return self.seq
@@ -109,14 +102,13 @@ class Device(aio.DatagramProtocol):
         self.register()
 
     def datagram_received(self, data, addr):
-        self.register()
+        self.register(addr)
         response = unpack_lifx_message(data)
         if response.seq_num in self.message:
             self.lastmsg=datetime.datetime.now()
             response_type,myevent,callb = self.message[response.seq_num]
             if type(response) == response_type:
                 if response.source_id == self.source_id:
-                    self.inet_addr = addr
                     if "State" in response.__class__.__name__:
                         setmethod="resp_set_"+response.__class__.__name__.replace("State","").lower()
                         if setmethod in dir(self) and callable(getattr(self,setmethod)):
@@ -132,9 +124,11 @@ class Device(aio.DatagramProtocol):
         elif self.default_callb:
             self.default_callb(response)
 
-    def register(self):
+    def register(self, addr=None):
         if not self.registered:
             self.registered = True
+            if addr is not None:
+                self.ip_addr, self.port = addr
             if self.parent:
                 self.parent.register(self)
 
@@ -165,7 +159,7 @@ class Device(aio.DatagramProtocol):
         sent_msg_count = 0
         sleep_interval = 0.05
         while(sent_msg_count < num_repeats):
-            self.transport.sendto(msg.packed_message)
+            self.transport.sendto(msg.packed_message, (self.ip_addr, self.port))
             sent_msg_count += 1
             await aio.sleep(sleep_interval) # Max num of messages device can handle is 20 per second.
 
@@ -188,7 +182,7 @@ class Device(aio.DatagramProtocol):
             event = aio.Event()
             self.message[msg.seq_num][1]= event
             attempts += 1
-            self.transport.sendto(msg.packed_message)
+            self.transport.sendto(msg.packed_message, (self.ip_addr, self.port))
             try:
                 myresult = await aio.wait_for(event.wait(),timeout_secs)
                 break
@@ -395,8 +389,8 @@ class Device(aio.DatagramProtocol):
     def device_characteristics_str(self, indent):
         s = "{}\n".format(self.label)
         s += indent + "MAC Address: {}\n".format(self.mac_addr)
-        s += indent + "IP Address: {}\n".format(self.inet_addr[0])
-        s += indent + "Port: {}\n".format(self.inet_addr[1])
+        s += indent + "IP Address: {}\n".format(self.ip_addr)
+        s += indent + "Port: {}\n".format(self.port)
         s += indent + "Power: {}\n".format(str_map(self.power_level))
         s += indent + "Location: {}\n".format(self.location)
         s += indent + "Group: {}\n".format(self.group)
@@ -627,9 +621,15 @@ class LifxDiscovery(aio.DatagramProtocol):
             return
 
         if mac_addr in self.lights:
-            # a message from a well-known light
-            self.lights[mac_addr].datagram_received(data, addr)
+            light = self.lights[mac_addr]
 
+            # a message from a well-known light
+            light.datagram_received(data, addr)
+
+            if type(response) == StateService and response.service == 1:
+                # rediscovered
+                light.ip_addr = addr[0]
+                light.port = response.port
         else:
             remote_port = None
 
