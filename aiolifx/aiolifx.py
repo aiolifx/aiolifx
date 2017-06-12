@@ -88,6 +88,14 @@ class Device(aio.DatagramProtocol):
         self.wifi_firmware_build_timestamp = None
         self.lastmsg=datetime.datetime.now()-datetime.timedelta(seconds=600)
         
+    @property
+    def ip_addr(self):
+        return self.inet_addr[0]
+
+    @property
+    def port(self):
+        return self.inet_addr[1]
+        
     def seq_next(self):
         self.seq = ( self.seq + 1 ) % 128
         return self.seq
@@ -151,7 +159,6 @@ class Device(aio.DatagramProtocol):
     #                            Workflow Methods
     #
    
-
     async def fire_sending(self,msg,num_repeats):
         if num_repeats is None:
             num_repeats = self.retry_count
