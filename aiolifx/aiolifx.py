@@ -102,7 +102,7 @@ class Device(aio.DatagramProtocol):
         self.register()
 
     def datagram_received(self, data, addr):
-        self.register(addr)
+        self.register()
         response = unpack_lifx_message(data)
         if response.seq_num in self.message:
             self.lastmsg=datetime.datetime.now()
@@ -124,11 +124,9 @@ class Device(aio.DatagramProtocol):
         elif self.default_callb:
             self.default_callb(response)
 
-    def register(self, addr=None):
+    def register(self):
         if not self.registered:
             self.registered = True
-            if addr is not None:
-                self.ip_addr, self.port = addr
             if self.parent:
                 self.parent.register(self)
 
@@ -159,7 +157,7 @@ class Device(aio.DatagramProtocol):
         sent_msg_count = 0
         sleep_interval = 0.05
         while(sent_msg_count < num_repeats):
-            self.transport.sendto(msg.packed_message, (self.ip_addr, self.port))
+            self.transport.sendto(msg.packed_message)
             sent_msg_count += 1
             await aio.sleep(sleep_interval) # Max num of messages device can handle is 20 per second.
 
@@ -182,7 +180,7 @@ class Device(aio.DatagramProtocol):
             event = aio.Event()
             self.message[msg.seq_num][1]= event
             attempts += 1
-            self.transport.sendto(msg.packed_message, (self.ip_addr, self.port))
+            self.transport.sendto(msg.packed_message)
             try:
                 myresult = await aio.wait_for(event.wait(),timeout_secs)
                 break
@@ -620,40 +618,43 @@ class LifxDiscovery(aio.DatagramProtocol):
         if mac_addr == BROADCAST_MAC:
             return
 
+        if type(response) == StateService and response.service == 1: # only look for UDP services
+            # discovered
+            remote_port = response.port
+        elif type(response) == LightState:
+            # looks like the lights are volunteering LigthState after booting
+            remote_port = UDP_BROADCAST_PORT
+        else:
+            return
+
+        if self.ipv6prefix:
+            family = socket.AF_INET6
+            remote_ip = mac_to_ipv6_linklocal(mac_addr, self.ipv6prefix)
+        else:
+            family = socket.AF_INET
+            remote_ip = response.ip_addr
+
         if mac_addr in self.lights:
+            # rediscovered
             light = self.lights[mac_addr]
 
-            # a message from a well-known light
-            light.datagram_received(data, addr)
+            # nothing changed, just register again
+            if light.ip_addr == remote_ip and light.port == remote_port:
+                light.register()
+                return
 
-            if type(response) == StateService and response.service == 1:
-                # rediscovered
-                light.ip_addr = addr[0]
-                light.port = response.port
+            light.cleanup()
+            light.ip_addr = remote_ip
+            light.port = remote_port
         else:
-            remote_port = None
+            # newly discovered
+            light = Light(self.loop, mac_addr, remote_ip, remote_port, parent=self)
+            self.lights[mac_addr] = light
 
-            if type(response) == StateService and response.service == 1: # only look for UDP services
-                # discovered
-                remote_port = response.port
-            elif type(response) == LightState:
-                # looks like the lights are volunteering LigthState after booting
-                remote_port = UDP_BROADCAST_PORT
+        coro = self.loop.create_datagram_endpoint(
+            lambda: light, family=family, remote_addr=(remote_ip, remote_port))
 
-            if remote_port is not None:
-                if self.ipv6prefix:
-                    family = socket.AF_INET6
-                    remote_ip = mac_to_ipv6_linklocal(mac_addr, self.ipv6prefix)
-                else:
-                    family = socket.AF_INET
-                    remote_ip = response.ip_addr
-
-                light = Light(self.loop, mac_addr, remote_ip, remote_port, parent=self)
-                coro = self.loop.create_datagram_endpoint(
-                    lambda: light, family=family, remote_addr=(remote_ip, remote_port))
-                self.lights[mac_addr] = light
-
-                light.task = self.loop.create_task(coro)
+        light.task = self.loop.create_task(coro)
 
     def discover(self):
         if self.transport:
