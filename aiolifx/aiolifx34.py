@@ -35,6 +35,7 @@ UDP_BROADCAST_PORT = 56700
 DEFAULT_TIMEOUT=0.5 # How long to wait for an ack or response
 DEFAULT_ATTEMPTS=3  # How many time shou;d we try to send to the bulb`
 DISCOVERY_INTERVAL=180
+DISCOVERY_STEP=5
 
 def mac_to_ipv6_linklocal(mac,prefix):
     """ Translate a MAC address into an IPv6 address in the prefixed network"""
@@ -595,14 +596,16 @@ class Light(Device):
     
 class LifxDiscovery(aio.DatagramProtocol):
 
-    def __init__(self, loop, parent=None, ipv6prefix=None, discovery_interval=DISCOVERY_INTERVAL):
+    def __init__(self, loop, parent=None, ipv6prefix=None, discovery_interval=DISCOVERY_INTERVAL, discovery_step=DISCOVERY_STEP):
         self.lights = {} #Known devices indexed by mac addresses
         self.parent = parent #Where to register new devices
         self.transport = None
         self.loop = loop
         self.source_id = random.randint(0, (2**32)-1)
         self.ipv6prefix = ipv6prefix
-        self.discovery_interval=discovery_interval
+        self.discovery_interval = discovery_interval
+        self.discovery_step = discovery_step
+        self.discovery_countdown = 0
 
     def connection_made(self, transport):
         #print('started')
@@ -660,9 +663,13 @@ class LifxDiscovery(aio.DatagramProtocol):
 
     def discover(self):
         if self.transport:
-            msg = GetService(BROADCAST_MAC, self.source_id, seq_num=0, payload={}, ack_requested=False, response_requested=True)    
-            self.transport.sendto(msg.generate_packed_message(), (UDP_BROADCAST_IP, UDP_BROADCAST_PORT ))
-            self.loop.call_later(self.discovery_interval, self.discover)
+            if self.discovery_countdown <= 0:
+                self.discovery_countdown = self.discovery_interval
+                msg = GetService(BROADCAST_MAC, self.source_id, seq_num=0, payload={}, ack_requested=False, response_requested=True)    
+                self.transport.sendto(msg.generate_packed_message(), (UDP_BROADCAST_IP, UDP_BROADCAST_PORT ))
+            else:
+                self.discovery_countdown -= self.discovery_step
+            self.loop.call_later(self.discovery_step, self.discover)
             
     def register(self,alight):
         if self.parent:
