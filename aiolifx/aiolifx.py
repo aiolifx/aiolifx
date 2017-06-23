@@ -594,7 +594,7 @@ class Light(Device):
     
 class LifxDiscovery(aio.DatagramProtocol):
 
-    def __init__(self, loop, parent=None, ipv6prefix=None, discovery_interval=DISCOVERY_INTERVAL, discovery_step=DISCOVERY_STEP):
+    def __init__(self, loop, parent=None, ipv6prefix=None, discovery_interval=DISCOVERY_INTERVAL, discovery_step=DISCOVERY_STEP, broadcast_ip=UDP_BROADCAST_IP):
         self.lights = {} #Known devices indexed by mac addresses
         self.parent = parent #Where to register new devices
         self.transport = None
@@ -604,6 +604,7 @@ class LifxDiscovery(aio.DatagramProtocol):
         self.discovery_interval = discovery_interval
         self.discovery_step = discovery_step
         self.discovery_countdown = 0
+        self.broadcast_ip = broadcast_ip
 
     def connection_made(self, transport):
         #print('started')
@@ -664,7 +665,7 @@ class LifxDiscovery(aio.DatagramProtocol):
             if self.discovery_countdown <= 0:
                 self.discovery_countdown = self.discovery_interval
                 msg = GetService(BROADCAST_MAC, self.source_id, seq_num=0, payload={}, ack_requested=False, response_requested=True)    
-                self.transport.sendto(msg.generate_packed_message(), (UDP_BROADCAST_IP, UDP_BROADCAST_PORT ))
+                self.transport.sendto(msg.generate_packed_message(), (self.broadcast_ip, UDP_BROADCAST_PORT))
             else:
                 self.discovery_countdown -= self.discovery_step
             self.loop.call_later(self.discovery_step, self.discover)
