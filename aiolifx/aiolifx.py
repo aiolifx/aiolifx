@@ -68,6 +68,7 @@ class Device(aio.DatagramProtocol):
         self.registered = False
         self.retry_count = DEFAULT_ATTEMPTS
         self.timeout = DEFAULT_TIMEOUT
+        self.unregister_timeout = DEFAULT_TIMEOUT
         self.transport = None
         self.task = None
         self.seq = 0
@@ -88,7 +89,7 @@ class Device(aio.DatagramProtocol):
         self.host_firmware_build_timestamp = None
         self.wifi_firmware_version = None
         self.wifi_firmware_build_timestamp = None
-        self.lastmsg=datetime.datetime.now()-datetime.timedelta(seconds=600)
+        self.lastmsg=datetime.datetime.now()
         
     def seq_next(self):
         self.seq = ( self.seq + 1 ) % 128
@@ -105,8 +106,8 @@ class Device(aio.DatagramProtocol):
     def datagram_received(self, data, addr):
         self.register()
         response = unpack_lifx_message(data)
+        self.lastmsg=datetime.datetime.now()
         if response.seq_num in self.message:
-            self.lastmsg=datetime.datetime.now()
             response_type,myevent,callb = self.message[response.seq_num]
             if type(response) == response_type:
                 if response.source_id == self.source_id:
@@ -134,8 +135,7 @@ class Device(aio.DatagramProtocol):
     def unregister(self):
         if self.registered:
             #Only if we have not received any message recently.
-            #On slower CPU, a race condition seem to sometime occur
-            if datetime.datetime.now()-datetime.timedelta(seconds=DEFAULT_TIMEOUT) > self.lastmsg:
+            if datetime.datetime.now()-datetime.timedelta(seconds=self.unregister_timeout) > self.lastmsg:
                 self.registered = False
                 if self.parent:
                     self.parent.unregister(self)
