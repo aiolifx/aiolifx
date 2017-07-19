@@ -9,7 +9,9 @@ product_map = {1: "Original 1000",
                 28: "LIFX BR30",
                 29: "LIFX+ A19",
                 30: "LIFX+ BR30",
-                31: "LIFX Z"
+                31: "LIFX Z",
+                36: "LIFX Downlight",
+                37: "LIFX Downlight"
 }
 
 features_map = {1: {"color": True,
@@ -47,5 +49,11 @@ features_map = {1: {"color": True,
 					"multizone": False},
                 31: {"color": True,
 					"infrared": False,
-					"multizone": True}
+					"multizone": True},
+                36: {"color": True,
+					"infrared": False,
+					"multizone": False},
+                37: {"color": True,
+					"infrared": False,
+					"multizone": False}
 }
