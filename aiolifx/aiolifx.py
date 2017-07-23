@@ -540,8 +540,8 @@ class Light(Device):
         if resp:
             if self.color_zones is None:
                 self.color_zones = [None] * resp.count
-            for i in range(0, 8):
-                self.color_zones[resp.index + i] = resp.color[i]
+            for i in range(resp.index, min(resp.index+8, resp.count)):
+                self.color_zones[i] = resp.color[i-resp.index]
 
     # value should be a dictionary with the the following keys: transient, color, period,cycles,duty_cycle,waveform
     def set_waveform(self, value, callb=None, rapid=False):
