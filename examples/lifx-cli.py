@@ -121,7 +121,7 @@ def readin():
                                                                int(round((float(lov[3])*65535.0)/100.0)),
                                                                3500],
                                                       "transient":1, "period":100, "cycles":30,
-                                                      "duty_cycle":0,"waveform":0})
+                                                      "skew_ratio":0,"waveform":0})
                             MyBulbs.boi=None
                         except:
                             print("Error: For pulse hue (0-360), saturation (0-100) and brightness (0-100)) must be numbers.\n")
