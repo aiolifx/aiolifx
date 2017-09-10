@@ -147,7 +147,7 @@ def readin():
         print("Select Function for {}:".format(MyBulbs.boi.label))
         print("\t[1]\tPower (0 or 1)")
         print("\t[2]\tWhite (Brigthness Temperature)")
-        print("\t[3]\tColour (Hue Saturation Value)")
+        print("\t[3]\tColour (Hue Saturation Brightness)")
         print("\t[4]\tInfo")
         print("\t[5]\tFirmware")
         print("\t[6]\tWifi")
