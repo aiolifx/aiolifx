@@ -532,14 +532,25 @@ class Light(Device):
                 "apply": apply,
             }
 
-            if rapid:
-                self.fire_and_forget(MultiZoneSetColorZones, args, callb=callb, num_repeats=1)
+            mypartial=partial(self.resp_set_multizonemultizone, args=args)
+            if callb:
+                mycallb=lambda x,y:(mypartial(y),callb(x,y))
             else:
-                self.req_with_ack(MultiZoneSetColorZones, args, callb=callb)
+                mycallb=lambda x,y:mypartial(y)
+
+            if rapid:
+                self.fire_and_forget(MultiZoneSetColorZones, args, num_repeats=1)
+                mycallb(self, None)
+            else:
+                self.req_with_ack(MultiZoneSetColorZones, args, callb=mycallb)
 
     # A multi-zone MultiZoneGetColorZones returns MultiZoneStateMultiZone -> multizonemultizone
-    def resp_set_multizonemultizone(self, resp):
-        if resp:
+    def resp_set_multizonemultizone(self, resp, args=None):
+        if args:
+            if self.color_zones:
+                for i in range(args["start_index"], args["end_index"]+1):
+                    self.color_zones[i] = args["color"]
+        elif resp:
             if self.color_zones is None:
                 self.color_zones = [None] * resp.count
             for i in range(resp.index, min(resp.index+8, resp.count)):
