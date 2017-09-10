@@ -554,16 +554,22 @@ class Light(Device):
             for i in range(resp.index, min(resp.index+8, resp.count)):
                 self.color_zones[i] = resp.color[i-resp.index]
 
-    # value should be a dictionary with the the following keys: transient, color, period,cycles,duty_cycle,waveform
+    # value should be a dictionary with the the following keys: transient, color, period, cycles, skew_ratio, waveform
     def set_waveform(self, value, callb=None, rapid=False):
         if "color" in value and len(value["color"]) == 4:
-            #try:
             if rapid:
-                self.fire_and_forget(LightSetWaveform, value, callb=callb, num_repeats=1)
+                self.fire_and_forget(LightSetWaveform, value, num_repeats=1)
             else:
                 self.req_with_ack(LightSetWaveform, value, callb=callb)
-            #except WorkflowException as e:
-                #print(e)
+
+    # value should be a dictionary with the the following keys:
+    # transient, color, period, cycles, skew_ratio, waveform, set_hue, set_saturation, set_brightness, set_kelvin
+    def set_waveform_optional(self, value, callb=None, rapid=False):
+        if "color" in value and len(value["color"]) == 4:
+            if rapid:
+                self.fire_and_forget(LightSetWaveformOptional, value, num_repeats=1)
+            else:
+                self.req_with_ack(LightSetWaveformOptional, value, callb=callb)
 
     # Infrared get maximum brightness, infrared_brightness
     def get_infrared(self,callb=None):
