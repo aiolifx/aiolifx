@@ -2,15 +2,17 @@
 # -*- coding:utf-8 -*-
 from distutils.core import setup
 
+version = '0.6.1'
+
 setup(name='aiolifx',
     packages=['aiolifx'],
-    version='0.6.0',
+    version=version,
     author='François Wautier',
     author_email='francois@wautier.eu',
     description='API for local communication with LIFX devices over a LAN with asyncio.',
     url='http://github.com/frawau/aiolifx',
-    download_url='https://github.com/frawau/aiolifx/archive/0.6.0.tar.gz',  
-    keywords = ['lifx', 'light', 'automation'], 
+    download_url='https://github.com/frawau/aiolifx/archive/'+version+'.tar.gz',
+    keywords = ['lifx', 'light', 'automation'],
     license='MIT',
     install_requires=[
     "bitstring",
