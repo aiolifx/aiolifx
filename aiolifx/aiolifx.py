@@ -1192,9 +1192,8 @@ class LifxDiscovery(aio.DatagramProtocol):
             # rediscovered
             light = self.lights[mac_addr]
 
-            # nothing changed, just register again
-            if light.ip_addr == remote_ip and light.port == remote_port:
-                light.register()
+            # nothing to do
+            if light.registered:
                 return
 
             light.cleanup()
