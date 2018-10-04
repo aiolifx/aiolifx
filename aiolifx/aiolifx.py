@@ -30,6 +30,7 @@ from functools import partial
 import time, random, datetime, socket
 
 # A couple of constants
+LISTEN_IP = "0.0.0.0"
 UDP_BROADCAST_IP = "255.255.255.255"
 UDP_BROADCAST_PORT = 56700
 DEFAULT_TIMEOUT=0.5 # How long to wait for an ack or response
@@ -1136,12 +1137,21 @@ class LifxDiscovery(aio.DatagramProtocol):
         self.parent = parent #Where to register new devices
         self.transport = None
         self.loop = loop
+        self.task = None
         self.source_id = random.randint(0, (2**32)-1)
         self.ipv6prefix = ipv6prefix
         self.discovery_interval = discovery_interval
         self.discovery_step = discovery_step
         self.discovery_countdown = 0
         self.broadcast_ip = broadcast_ip
+
+    def start(self, listen_ip=LISTEN_IP, listen_port=0):
+        """Start discovery task."""
+        coro = self.loop.create_datagram_endpoint(
+            lambda: self, local_addr=(listen_ip, listen_port))
+
+        self.task = self.loop.create_task(coro)
+        return self.task
 
     def connection_made(self, transport):
         """Method run when the UDP broadcast server is started
@@ -1239,6 +1249,9 @@ class LifxDiscovery(aio.DatagramProtocol):
         if self.transport:
             self.transport.close()
             self.transport = None
+        if self.task:
+            self.task.cancel()
+            self.task = None
         for light in self.lights.values():
             light.cleanup()
         self.lights = {}

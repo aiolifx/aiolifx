@@ -39,7 +39,7 @@ a callback to print the info when it is returned.
 In essence, the test program is this
 
     class bulbs():
-    """ A simple class with a register and  unregister methods
+    """ A simple class with a register and unregister methods
     """
         def __init__(self):
             self.bulbs=[]
@@ -61,32 +61,31 @@ In essence, the test program is this
         selection = sys.stdin.readline().strip("\n")
         DoSomething()
         
-    MyBulbs= bulbs()
+    MyBulbs = bulbs()
     loop = aio.get_event_loop()
-    coro = loop.create_datagram_endpoint(
-                partial(alix.LifxDiscovery,loop, MyBulbs), local_addr=('0.0.0.0', UDP_BROADCAST_PORT))
+    discovery = alix.LifxDiscovery(loop, MyBulbs)
     try:
-        loop.add_reader(sys.stdin,readin)
-        server = loop.create_task(coro)
+        loop.add_reader(sys.stdin, readin)
+        discovery.start()
         loop.run_forever()
     except:
         pass
     finally:
-        server.cancel()
+        discovery.cleanup()
         loop.remove_reader(sys.stdin)
         loop.close()
     
 
 Other things worth noting:
     
-    -  Whilst LifxDiscover uses UDP broadcast, the bulbs are
+    -  Whilst LifxDiscovery uses UDP broadcast, the bulbs are
        connected with Unicast UDP
        
     - The socket connecting to a bulb is not closed unless the bulb is deemed to have
       gone the way of the Dodo. I've been using that for days with no problem
        
     - You can select to used IPv6 connection to the bulbs by passing an
-      IPv6 prefix to LifxDiscover. It's only been tried with /64 prefix.
+      IPv6 prefix to LifxDiscovery. It's only been tried with /64 prefix.
       If you want to use a /48 prefix, add ":" (colon) at the end of the 
       prefix and pray. (This means 2 colons at the end!)
       
