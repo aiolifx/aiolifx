@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 #
-# This application is an example on how to use aiolifx 
-# 
+# This application is an example on how to use aiolifx
+#
 # Copyright (c) 2016 François Wautier
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
@@ -15,11 +15,11 @@
 # The above copyright notice and this permission notice shall be included in all copies
 # or substantial portions of the Software.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR 
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 # IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 import sys
 import asyncio as aio
@@ -35,7 +35,7 @@ class bulbs():
     def __init__(self):
         self.bulbs=[]
         self.boi=None #bulb of interest
-        
+
     def register(self,bulb):
         bulb.get_label()
         bulb.get_location()
@@ -47,7 +47,7 @@ class bulbs():
         self.bulbs.sort(key=lambda x: x.label or x.mac_addr)
         if opts.extra:
             bulb.register_callback(lambda y: print("Unexpected message: %s"%str(y)))
-        
+
     def unregister(self,bulb):
         idx=0
         for x in list([ y.mac_addr for y in self.bulbs]):
@@ -55,7 +55,7 @@ class bulbs():
                 del(self.bulbs[idx])
                 break
             idx+=1
-            
+
 def readin():
     """Reading from stdin and displaying menu"""
 
@@ -70,17 +70,17 @@ def readin():
                     MyBulbs.boi=None
                 elif int(lov[0]) == 1:
                     if len(lov) >1:
-                        MyBulbs.boi.set_power(lov[1].lower() in ["1","on","true"]) 
+                        MyBulbs.boi.set_power(lov[1].lower() in ["1","on","true"])
                         MyBulbs.boi=None
                     else:
                         print("Error: For power you must indicate on or off\n")
                 elif int(lov[0]) == 2:
                     if len(lov) >2:
                         try:
-                            MyBulbs.boi.set_color([58275,0, 
+                            MyBulbs.boi.set_color([58275,0,
                                     int(round((float(lov[1])*65365.0)/100.0)),
                                     int(round(float(lov[2])))])
-                            
+
                             MyBulbs.boi=None
                         except:
                             print("Error: For white brightness (0-100) and temperature (2500-9000) must be numbers.\n")
@@ -97,23 +97,23 @@ def readin():
                             print("Error: For colour hue (0-360), saturation (0-100) and brightness (0-100)) must be numbers.\n")
                     else:
                         print("Error: For colour you must indicate hue (0-360), saturation (0-100) and brightness (0-100))\n")
-                        
-                elif int(lov[0]) == 4: 
+
+                elif int(lov[0]) == 4:
                     print(MyBulbs.boi.device_characteristics_str("    "))
                     print(MyBulbs.boi.device_product_str("    "))
                     MyBulbs.boi=None
-                elif int(lov[0]) == 5: 
+                elif int(lov[0]) == 5:
                     print(MyBulbs.boi.device_firmware_str("   "))
                     MyBulbs.boi=None
-                elif int(lov[0]) == 6: 
+                elif int(lov[0]) == 6:
                     mypartial=partial(MyBulbs.boi.device_radio_str)
                     MyBulbs.boi.get_wifiinfo(callb=lambda x,y:print("\n"+mypartial(y)))
                     MyBulbs.boi=None
-                elif int(lov[0]) == 7: 
+                elif int(lov[0]) == 7:
                     mypartial=partial(MyBulbs.boi.device_time_str)
                     MyBulbs.boi.get_hostinfo(callb=lambda x,y:print("\n"+mypartial(y)))
                     MyBulbs.boi=None
-                elif int(lov[0]) == 8: 
+                elif int(lov[0]) == 8:
                     if len(lov) >3:
                         try:
                             print ( "Sending {}".format([int(round((float(lov[1])*65535.0)/360.0)),
@@ -131,7 +131,7 @@ def readin():
                     else:
                         print("Error: For pulse you must indicate hue (0-360), saturation (0-100) and brightness (0-100))\n")
             #except:
-                #print ("\nError: Selection must be a number.\n")  
+                #print ("\nError: Selection must be a number.\n")
         else:
             try:
                 if int(lov[0]) > 0:
@@ -139,10 +139,10 @@ def readin():
                         MyBulbs.boi=MyBulbs.bulbs[int(lov[0])-1]
                     else:
                         print("\nError: Not a valid selection.\n")
-            
+
             except:
                 print ("\nError: Selection must be a number.\n")
-        
+
     if MyBulbs.boi:
         print("Select Function for {}:".format(MyBulbs.boi.label))
         print("\t[1]\tPower (0 or 1)")
@@ -163,7 +163,7 @@ def readin():
             idx+=1
     print("")
     print("Your choice: ", end='',flush=True)
-  
+
 parser = argparse.ArgumentParser(description="Track and interact with Lifx light bulbs.")
 parser.add_argument("-6", "--ipv6prefix", default=None,
                     help="Connect to Lifx using IPv6 with given /64 prefix (Do not end with colon unless you have less than 64bits).")
@@ -173,22 +173,21 @@ try:
     opts = parser.parse_args()
 except Exception as e:
     parser.error("Error: " + str(e))
-    
 
-        
+
+
 MyBulbs= bulbs()
 loop = aio.get_event_loop()
-coro = loop.create_datagram_endpoint(
-            partial(alix.LifxDiscovery,loop, MyBulbs, ipv6prefix=opts.ipv6prefix), local_addr=('0.0.0.0', UDP_BROADCAST_PORT))
+discovery = alix.LifxDiscovery(loop, MyBulbs)
 try:
     loop.add_reader(sys.stdin,readin)
-    server = loop.create_task(coro)
+    discovery.start()
     print("Hit \"Enter\" to start")
     print("Use Ctrl-C to quit")
     loop.run_forever()
 except:
     pass
 finally:
-    server.cancel()
+    discovery.cleanup()
     loop.remove_reader(sys.stdin)
     loop.close()
