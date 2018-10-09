@@ -25,7 +25,6 @@ import sys
 import asyncio as aio
 import aiolifx as alix
 from functools import partial
-UDP_BROADCAST_PORT = 56700
 
 #Simple bulb control frpm console
 class bulbs():
@@ -165,17 +164,17 @@ def readin():
 
 MyBulbs= bulbs()
 loop = aio.get_event_loop()
-coro = loop.create_datagram_endpoint(
-            partial(alix.LifxDiscovery,loop, MyBulbs), local_addr=('0.0.0.0', UDP_BROADCAST_PORT))
+discovery = alix.LifxDiscovery(loop, MyBulbs)
+
 try:
     loop.add_reader(sys.stdin,readin)
-    server = loop.create_task(coro)
+    discovery.start()
     print("Hit \"Enter\" to start")
     print("Use Ctrl-C to quit")
     loop.run_forever()
 except:
     pass
 finally:
-    server.cancel()
+    discovery.cleanup()
     loop.remove_reader(sys.stdin)
     loop.close()
