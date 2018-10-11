@@ -161,6 +161,13 @@ def readin():
     print("Your choice: ", end='',flush=True)
   
 
+async def scan(loop, discovery):
+    scanner = alix.LifxScan(loop)
+    ips = await scanner.scan()
+    print("Hit \"Enter\" to start")
+    print("Use Ctrl-C to quit")
+    discovery.start(listen_ip=ips[0])
+
 
 MyBulbs= bulbs()
 loop = aio.get_event_loop()
@@ -168,9 +175,7 @@ discovery = alix.LifxDiscovery(loop, MyBulbs)
 
 try:
     loop.add_reader(sys.stdin,readin)
-    discovery.start()
-    print("Hit \"Enter\" to start")
-    print("Use Ctrl-C to quit")
+    loop.create_task(scan(loop, discovery))
     loop.run_forever()
 except:
     pass

@@ -27,7 +27,7 @@ from .msgtypes import *
 from .products import *
 from .unpack import unpack_lifx_message
 from functools import partial
-import time, random, datetime, socket
+import time, random, datetime, socket, ifaddr
 
 # A couple of constants
 LISTEN_IP = "0.0.0.0"
@@ -1255,3 +1255,57 @@ class LifxDiscovery(aio.DatagramProtocol):
         for light in self.lights.values():
             light.cleanup()
         self.lights = {}
+
+
+class LifxScan:
+    """Scan all network interfaces for any active bulb."""
+
+    def __init__(self, loop):
+        """Initialize the scanner."""
+        self.loop = loop
+
+    async def scan(self):
+        """Return a list of local IP addresses on interfaces with LIFX bulbs."""
+        adapters = await self.loop.run_in_executor(None, ifaddr.get_adapters)
+        ips = [ip.ip for adapter in ifaddr.get_adapters() for ip in adapter.ips if ip.is_IPv4]
+
+        tasks = []
+        discoveries = []
+        for ip in ips:
+            manager = ScanManager(ip)
+            lifx_discovery = LifxDiscovery(self.loop, manager)
+            discoveries.append(lifx_discovery)
+            lifx_discovery.start(listen_ip=ip)
+            tasks.append(self.loop.create_task(manager.lifx_ip()))
+
+        (done, pending) = await aio.wait(tasks, timeout=1)
+
+        for discovery in discoveries:
+            discovery.cleanup()
+
+        for task in pending:
+            task.cancel()
+
+        return [task.result() for task in done]
+
+
+class ScanManager:
+    """Temporary manager for discovering any bulb."""
+
+    def __init__(self, ip):
+        """Initialize the manager."""
+        self._event = aio.Event()
+        self.ip = ip
+
+    async def lifx_ip(self):
+        """Return our IP address when any device is discovered."""
+        await self._event.wait()
+        return self.ip
+
+    def register(self, bulb):
+        """Handle detected bulb."""
+        self._event.set()
+
+    def unregister(self, bulb):
+        """Handle disappearing bulb."""
+        pass
