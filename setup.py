@@ -16,6 +16,7 @@ setup(name='aiolifx',
     license='MIT',
     install_requires=[
     "bitstring",
+    "ifaddr",
     ],
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
