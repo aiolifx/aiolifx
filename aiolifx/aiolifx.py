@@ -1264,7 +1264,7 @@ class LifxScan:
         """Initialize the scanner."""
         self.loop = loop
 
-    async def scan(self):
+    async def scan(self, timeout=1):
         """Return a list of local IP addresses on interfaces with LIFX bulbs."""
         adapters = await self.loop.run_in_executor(None, ifaddr.get_adapters)
         ips = [ip.ip for adapter in ifaddr.get_adapters() for ip in adapter.ips if ip.is_IPv4]
@@ -1278,7 +1278,7 @@ class LifxScan:
             lifx_discovery.start(listen_ip=ip)
             tasks.append(self.loop.create_task(manager.lifx_ip()))
 
-        (done, pending) = await aio.wait(tasks, timeout=1)
+        (done, pending) = await aio.wait(tasks, timeout=timeout)
 
         for discovery in discoveries:
             discovery.cleanup()
