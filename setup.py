@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 from distutils.core import setup
 
-version = '0.6.5'
+version = '0.6.6'
 
 setup(name='aiolifx',
     packages=['aiolifx'],
