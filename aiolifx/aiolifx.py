@@ -1271,6 +1271,9 @@ class LifxScan:
         adapters = await self.loop.run_in_executor(None, ifaddr.get_adapters)
         ips = [ip.ip for adapter in ifaddr.get_adapters() for ip in adapter.ips if ip.is_IPv4]
 
+        if not ips:
+            return []
+
         tasks = []
         discoveries = []
         for ip in ips:
