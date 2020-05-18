@@ -9,25 +9,15 @@ json = json.load(urlopen('https://raw.githubusercontent.com/LIFX/products/master
 product_map = {}
 features_map = {}
 
-kelvin_range = {
-    10: [2700, 6500],
-    11: [2700, 6500],
-    50: [1500, 4000],
-    51: [2700, 2700],
-    60: [1500, 4000],
-    61: [2700, 2700],
-}
-default_kelvin = [2500, 9000]
-
 for product in json[0]['products']:
     product_id = product['pid']
 
     product_map[product_id] = product['name']
 
     features = product['features']
-    whites = kelvin_range.get(product_id, default_kelvin)
-    features['min_kelvin'] = whites[0]
-    features['max_kelvin'] = whites[1]
+    features['min_kelvin'] = features['temperature_range'][0]
+    features['max_kelvin'] = features['temperature_range'][1]
+    del features['temperature_range']
 
     features_map[product_id] = features
 
