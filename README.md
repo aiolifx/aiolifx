@@ -97,4 +97,4 @@ Other things worth noting:
 
 # Thanks
 
-Thanks to Anders Melchiorsen for is essential contributions
+Thanks to Anders Melchiorsen for his essential contributions
