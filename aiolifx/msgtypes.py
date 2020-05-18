@@ -458,7 +458,7 @@ class LightStatePower(Message):
 
 ##### INFRARED MESSAGES #####
 
-class LightGetInfrared(Message): 
+class LightGetInfrared(Message):
     def __init__(self, target_addr, source_id, seq_num, payload={}, ack_requested=False, response_requested=False):
         super(LightGetInfrared, self).__init__(MSG_IDS[LightGetInfrared], target_addr, source_id, seq_num, ack_requested, response_requested)
 
@@ -591,7 +591,7 @@ MSG_IDS = {     GetService: 2,
                 LightSetWaveformOptional: 119,
                 LightGetInfrared: 120,
                 LightStateInfrared: 121,
-                LightSetInfrared: 122, 
+                LightSetInfrared: 122,
                 MultiZoneSetColorZones: 501,
                 MultiZoneGetColorZones: 502,
                 MultiZoneStateZone: 503,

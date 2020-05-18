@@ -1100,6 +1100,20 @@ class Light(Device):
         elif resp:
             self.infrared_brightness = resp.infrared_brightness
 
+    def get_accesspoint(self,callb=None):
+        """Convenience method to request the access point available
+
+        This method will do nothing unless a call back is passed to it.
+
+        :param callb: Callable to be used when the response is received. If not set,
+                      self.resp_set_label will be used.
+        :type callb: callable
+        :returns: None
+        :rtype: None
+        """
+        response = self.req_with_resp(GetAccessPoint, StateAccessPoint,callb=callb)
+        return None
+
     def __str__(self):
         indent = "  "
         s = self.device_characteristics_str(indent)

@@ -2,7 +2,7 @@
 
 0.4.1   Added support for python 3.4
         Does cause an error message when installing
-        with 3.4. This error message does not affect 
+        with 3.4. This error message does not affect
         operation.
 0.4.2
 0.4.3  Mostly an apparent race condition on slower cpu
@@ -12,8 +12,12 @@
        use discovery_interval correctly
        make sure that the reply to last attempt at sending
        a command is handled correctly
-       
+
 0.4.5  Thanks to Anders Melchiorsen
        Bug in msgtypes.py Needed a binary string, not a string for Lifx Z
        Streamline fire_sending and try_sending so that the app does not
        have to check if the connection is still active.
+
+.....
+Not been updated for quite a while... check out github for changes info
+    https://github.com/frawau/aiolifx
