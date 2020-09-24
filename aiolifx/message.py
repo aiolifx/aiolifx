@@ -40,7 +40,17 @@ class Message(object):
 
         self.payload_fields = [] # tuples of ("label", value)
 
-        self.packed_message = self.generate_packed_message()
+        self._packed_message = None
+
+    @property
+    def packed_message(self):
+        if self._packed_message is None:
+            self._packed_message = self.generate_packed_message()
+        return self._packed_message
+
+    @packed_message.setter
+    def packed_message(self, value):
+        self._packed_message = value
 
     def generate_packed_message(self):
         self.payload = self.get_payload()
