@@ -15,9 +15,10 @@ for product in json[0]['products']:
     product_map[product_id] = product['name']
 
     features = product['features']
-    features['min_kelvin'] = features['temperature_range'][0]
-    features['max_kelvin'] = features['temperature_range'][1]
-    del features['temperature_range']
+    if 'temperature_range' in features:
+        features['min_kelvin'] = features['temperature_range'][0]
+        features['max_kelvin'] = features['temperature_range'][1]
+        del features['temperature_range']
 
     features_map[product_id] = features
 
