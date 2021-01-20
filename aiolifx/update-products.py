@@ -4,21 +4,23 @@ from urllib.request import urlopen
 import json
 import pprint
 
-json = json.load(urlopen('https://raw.githubusercontent.com/LIFX/products/master/products.json'))
+json = json.load(
+    urlopen("https://raw.githubusercontent.com/LIFX/products/master/products.json")
+)
 
 product_map = {}
 features_map = {}
 
-for product in json[0]['products']:
-    product_id = product['pid']
+for product in json[0]["products"]:
+    product_id = product["pid"]
 
-    product_map[product_id] = product['name']
+    product_map[product_id] = product["name"]
 
-    features = product['features']
-    if 'temperature_range' in features:
-        features['min_kelvin'] = features['temperature_range'][0]
-        features['max_kelvin'] = features['temperature_range'][1]
-        del features['temperature_range']
+    features = product["features"]
+    if "temperature_range" in features:
+        features["min_kelvin"] = features["temperature_range"][0]
+        features["max_kelvin"] = features["temperature_range"][1]
+        del features["temperature_range"]
 
     features_map[product_id] = features
 

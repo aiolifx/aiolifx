@@ -33,12 +33,13 @@ import time, random, datetime, socket, ifaddr
 LISTEN_IP = "0.0.0.0"
 UDP_BROADCAST_IP = "255.255.255.255"
 UDP_BROADCAST_PORT = 56700
-DEFAULT_TIMEOUT=0.5 # How long to wait for an ack or response
-DEFAULT_ATTEMPTS=3  # How many time shou;d we try to send to the bulb`
-DISCOVERY_INTERVAL=180
-DISCOVERY_STEP=5
+DEFAULT_TIMEOUT = 0.5  # How long to wait for an ack or response
+DEFAULT_ATTEMPTS = 3  # How many time shou;d we try to send to the bulb`
+DISCOVERY_INTERVAL = 180
+DISCOVERY_STEP = 5
 
-def mac_to_ipv6_linklocal(mac,prefix="fe80::"):
+
+def mac_to_ipv6_linklocal(mac, prefix="fe80::"):
     """ Translate a MAC address into an IPv6 address in the prefixed network.
 
     This function calculates the EUI (Extended Unique Identifier) from the given
@@ -55,16 +56,19 @@ def mac_to_ipv6_linklocal(mac,prefix="fe80::"):
     """
 
     # Remove the most common delimiters; dots, dashes, etc.
-    mac_value = int(mac.translate(str.maketrans(dict([(x,None) for x in [" ",".",":","-"]]))),16)
+    mac_value = int(
+        mac.translate(str.maketrans(dict([(x, None) for x in [" ", ".", ":", "-"]]))),
+        16,
+    )
     # Split out the bytes that slot into the IPv6 address
     # XOR the most significant byte with 0x02, inverting the
     # Universal / Local bit
-    high2 = mac_value >> 32 & 0xffff ^ 0x0200
-    high1 = mac_value >> 24 & 0xff
-    low1 = mac_value >> 16 & 0xff
-    low2 = mac_value & 0xffff
-    return prefix+':{:04x}:{:02x}ff:fe{:02x}:{:04x}'.format(
-        high2, high1, low1, low2)
+    high2 = mac_value >> 32 & 0xFFFF ^ 0x0200
+    high1 = mac_value >> 24 & 0xFF
+    low1 = mac_value >> 16 & 0xFF
+    low2 = mac_value & 0xFFFF
+    return prefix + ":{:04x}:{:02x}ff:fe{:02x}:{:04x}".format(high2, high1, low1, low2)
+
 
 def nanosec_to_hours(ns):
     """Convert nanoseconds to hours
@@ -74,7 +78,8 @@ def nanosec_to_hours(ns):
         :returns: ns/(1000000000.0*60*60)
         :rtype: int
     """
-    return ns/(1000000000.0*60*60)
+    return ns / (1000000000.0 * 60 * 60)
+
 
 class Device(aio.DatagramProtocol):
     """Connection to a given Lifx device.
@@ -92,6 +97,7 @@ class Device(aio.DatagramProtocol):
         :returns: an asyncio DatagramProtocol to handle communication with the device
         :rtype: DatagramProtocol
     """
+
     def __init__(self, loop, mac_addr, ip_addr, port, parent=None):
         self.loop = loop
         self.mac_addr = mac_addr
@@ -107,8 +113,8 @@ class Device(aio.DatagramProtocol):
         self.seq = 0
         # Key is the message sequence, value is (Response, Event, callb )
         self.message = {}
-        self.source_id = random.randint(0, (2**32)-1)
-        #Default callback for unexpected messages
+        self.source_id = random.randint(0, (2 ** 32) - 1)
+        # Default callback for unexpected messages
         self.default_callb = None
         # And the rest
         self.label = None
@@ -122,7 +128,7 @@ class Device(aio.DatagramProtocol):
         self.host_firmware_build_timestamp = None
         self.wifi_firmware_version = None
         self.wifi_firmware_build_timestamp = None
-        self.lastmsg=datetime.datetime.now()
+        self.lastmsg = datetime.datetime.now()
 
     def seq_next(self):
         """Method to return the next sequence value to use in messages.
@@ -130,7 +136,7 @@ class Device(aio.DatagramProtocol):
             :returns: next number in sequensce (modulo 128)
             :rtype: int
         """
-        self.seq = ( self.seq + 1 ) % 128
+        self.seq = (self.seq + 1) % 128
         return self.seq
 
     #
@@ -159,23 +165,28 @@ class Device(aio.DatagramProtocol):
         """
         self.register()
         response = unpack_lifx_message(data)
-        self.lastmsg=datetime.datetime.now()
+        self.lastmsg = datetime.datetime.now()
         if response.seq_num in self.message:
-            response_type,myevent,callb = self.message[response.seq_num]
+            response_type, myevent, callb = self.message[response.seq_num]
             if type(response) == response_type:
                 if response.source_id == self.source_id:
                     if "State" in response.__class__.__name__:
-                        setmethod="resp_set_"+response.__class__.__name__.replace("State","").lower()
-                        if setmethod in dir(self) and callable(getattr(self,setmethod)):
-                            getattr(self,setmethod)(response)
+                        setmethod = (
+                            "resp_set_"
+                            + response.__class__.__name__.replace("State", "").lower()
+                        )
+                        if setmethod in dir(self) and callable(
+                            getattr(self, setmethod)
+                        ):
+                            getattr(self, setmethod)(response)
                     if callb:
-                        callb(self,response)
+                        callb(self, response)
                     myevent.set()
-                del(self.message[response.seq_num])
+                del self.message[response.seq_num]
             elif type(response) == Acknowledgement:
                 pass
             else:
-                del(self.message[response.seq_num])
+                del self.message[response.seq_num]
         elif self.default_callb:
             self.default_callb(response)
 
@@ -191,8 +202,12 @@ class Device(aio.DatagramProtocol):
         """Proxy method to unregister the device with the parent.
         """
         if self.registered:
-            #Only if we have not received any message recently.
-            if datetime.datetime.now()-datetime.timedelta(seconds=self.unregister_timeout) > self.lastmsg:
+            # Only if we have not received any message recently.
+            if (
+                datetime.datetime.now()
+                - datetime.timedelta(seconds=self.unregister_timeout)
+                > self.lastmsg
+            ):
                 self.registered = False
                 if self.parent:
                     self.parent.unregister(self)
@@ -211,7 +226,7 @@ class Device(aio.DatagramProtocol):
     #                            Workflow Methods
     #
 
-    async def fire_sending(self,msg,num_repeats):
+    async def fire_sending(self, msg, num_repeats):
         """Coroutine used to send message to the device when no response is needed.
 
             :param msg: Message to send
@@ -224,14 +239,18 @@ class Device(aio.DatagramProtocol):
             num_repeats = self.retry_count
         sent_msg_count = 0
         sleep_interval = 0.05
-        while(sent_msg_count < num_repeats):
+        while sent_msg_count < num_repeats:
             if self.transport:
                 self.transport.sendto(msg.packed_message)
             sent_msg_count += 1
-            await aio.sleep(sleep_interval) # Max num of messages device can handle is 20 per second.
+            await aio.sleep(
+                sleep_interval
+            )  # Max num of messages device can handle is 20 per second.
 
     # Don't wait for Acks or Responses, just send the same message repeatedly as fast as possible
-    def fire_and_forget(self, msg_type, payload={}, timeout_secs=None, num_repeats=None):
+    def fire_and_forget(
+        self, msg_type, payload={}, timeout_secs=None, num_repeats=None
+    ):
         """Method used to send message to the device when no response/ack is needed.
 
             :param msg_type: The type of the message to send, a subclass of aiolifx.Message
@@ -245,12 +264,18 @@ class Device(aio.DatagramProtocol):
             :returns: Always True
             :rtype: bool
         """
-        msg = msg_type(self.mac_addr, self.source_id, seq_num=0, payload=payload, ack_requested=False, response_requested=False)
-        xx=self.loop.create_task(self.fire_sending(msg,num_repeats))
+        msg = msg_type(
+            self.mac_addr,
+            self.source_id,
+            seq_num=0,
+            payload=payload,
+            ack_requested=False,
+            response_requested=False,
+        )
+        xx = self.loop.create_task(self.fire_sending(msg, num_repeats))
         return True
 
-
-    async def try_sending(self,msg,timeout_secs, max_attempts):
+    async def try_sending(self, msg, timeout_secs, max_attempts):
         """Coroutine used to send message to the device when a response or ack is needed.
 
         This coroutine will try to send up to max_attempts time the message, waiting timeout_secs
@@ -273,14 +298,15 @@ class Device(aio.DatagramProtocol):
 
         attempts = 0
         while attempts < max_attempts:
-            if msg.seq_num not in self.message: return
+            if msg.seq_num not in self.message:
+                return
             event = aio.Event()
-            self.message[msg.seq_num][1]= event
+            self.message[msg.seq_num][1] = event
             attempts += 1
             if self.transport:
                 self.transport.sendto(msg.packed_message)
             try:
-                myresult = await aio.wait_for(event.wait(),timeout_secs)
+                myresult = await aio.wait_for(event.wait(), timeout_secs)
                 break
             except Exception as inst:
                 if attempts >= max_attempts:
@@ -288,12 +314,14 @@ class Device(aio.DatagramProtocol):
                         callb = self.message[msg.seq_num][2]
                         if callb:
                             callb(self, None)
-                        del(self.message[msg.seq_num])
-                    #It's dead Jim
+                        del self.message[msg.seq_num]
+                    # It's dead Jim
                     self.unregister()
 
     # Usually used for Set messages
-    def req_with_ack(self, msg_type, payload, callb = None, timeout_secs=None, max_attempts=None):
+    def req_with_ack(
+        self, msg_type, payload, callb=None, timeout_secs=None, max_attempts=None
+    ):
         """Method to send a message expecting to receive an ACK.
 
             :param msg_type: The type of the message to send, a subclass of aiolifx.Message
@@ -309,13 +337,28 @@ class Device(aio.DatagramProtocol):
             :returns: True
             :rtype: bool
         """
-        msg = msg_type(self.mac_addr, self.source_id, seq_num=self.seq_next(), payload=payload, ack_requested=True, response_requested=False)
-        self.message[msg.seq_num]=[Acknowledgement,None,callb]
-        xx=self.loop.create_task(self.try_sending(msg,timeout_secs, max_attempts))
+        msg = msg_type(
+            self.mac_addr,
+            self.source_id,
+            seq_num=self.seq_next(),
+            payload=payload,
+            ack_requested=True,
+            response_requested=False,
+        )
+        self.message[msg.seq_num] = [Acknowledgement, None, callb]
+        xx = self.loop.create_task(self.try_sending(msg, timeout_secs, max_attempts))
         return True
 
     # Usually used for Get messages, or for state confirmation after Set (hence the optional payload)
-    def req_with_resp(self, msg_type, response_type, payload={}, callb = None, timeout_secs=None, max_attempts=None):
+    def req_with_resp(
+        self,
+        msg_type,
+        response_type,
+        payload={},
+        callb=None,
+        timeout_secs=None,
+        max_attempts=None,
+    ):
         """Method to send a message expecting to receive a response.
 
             :param msg_type: The type of the message to send, a subclass of aiolifx.Message
@@ -333,13 +376,28 @@ class Device(aio.DatagramProtocol):
             :returns: True
             :rtype: bool
         """
-        msg = msg_type(self.mac_addr, self.source_id, seq_num=self.seq_next(), payload=payload, ack_requested=False, response_requested=True)
-        self.message[msg.seq_num]=[response_type,None,callb]
-        xx=self.loop.create_task(self.try_sending(msg,timeout_secs, max_attempts))
+        msg = msg_type(
+            self.mac_addr,
+            self.source_id,
+            seq_num=self.seq_next(),
+            payload=payload,
+            ack_requested=False,
+            response_requested=True,
+        )
+        self.message[msg.seq_num] = [response_type, None, callb]
+        xx = self.loop.create_task(self.try_sending(msg, timeout_secs, max_attempts))
         return True
 
     # Not currently implemented, although the LIFX LAN protocol supports this kind of workflow natively
-    def req_with_ack_resp(self, msg_type, response_type, payload, callb = None, timeout_secs=None, max_attempts=None):
+    def req_with_ack_resp(
+        self,
+        msg_type,
+        response_type,
+        payload,
+        callb=None,
+        timeout_secs=None,
+        max_attempts=None,
+    ):
         """Method to send a message expecting to receive both a response and an ack.
 
             :param msg_type: The type of the message to send, a subclass of aiolifx.Message
@@ -355,16 +413,22 @@ class Device(aio.DatagramProtocol):
             :returns: True
             :rtype: bool
         """
-        msg = msg_type(self.mac_addr, self.source_id, seq_num=self.seq_next(), payload=payload, ack_requested=True, response_requested=True)
-        self.message[msg.seq_num]=[response_type,None,callb]
-        xx=self.loop.create_task(self.try_sending(msg,timeout_secs, max_attempts))
+        msg = msg_type(
+            self.mac_addr,
+            self.source_id,
+            seq_num=self.seq_next(),
+            payload=payload,
+            ack_requested=True,
+            response_requested=True,
+        )
+        self.message[msg.seq_num] = [response_type, None, callb]
+        xx = self.loop.create_task(self.try_sending(msg, timeout_secs, max_attempts))
         return True
-
 
     #
     #                            Attribute Methods
     #
-    def get_label(self,callb=None):
+    def get_label(self, callb=None):
         """Convenience method to request the label from the device
 
         This method will check whether the value has already been retrieved from the device,
@@ -379,15 +443,15 @@ class Device(aio.DatagramProtocol):
             :rtype: str
         """
         if self.label is None:
-            mypartial=partial(self.resp_set_label)
+            mypartial = partial(self.resp_set_label)
             if callb:
-                mycallb=lambda x,y:(mypartial(y),callb(x,y))
+                mycallb = lambda x, y: (mypartial(y), callb(x, y))
             else:
-                mycallb=lambda x,y:mypartial(y)
-            response = self.req_with_resp(GetLabel, StateLabel, callb=mycallb )
+                mycallb = lambda x, y: mypartial(y)
+            response = self.req_with_resp(GetLabel, StateLabel, callb=mycallb)
         return self.label
 
-    def set_label(self, value,callb=None):
+    def set_label(self, value, callb=None):
         """Convenience method to set the label of the device
 
         This method will send a SetLabel message to the device, and request callb be executed
@@ -403,21 +467,23 @@ class Device(aio.DatagramProtocol):
         """
         if len(value) > 32:
             value = value[:32]
-        mypartial=partial(self.resp_set_label,label=value)
+        mypartial = partial(self.resp_set_label, label=value)
         if callb:
-            self.req_with_ack(SetLabel, {"label": value},lambda x,y:(mypartial(y),callb(x,y)) )
+            self.req_with_ack(
+                SetLabel, {"label": value}, lambda x, y: (mypartial(y), callb(x, y))
+            )
         else:
-            self.req_with_ack(SetLabel, {"label": value},lambda x,y:mypartial(y) )
+            self.req_with_ack(SetLabel, {"label": value}, lambda x, y: mypartial(y))
 
     def resp_set_label(self, resp, label=None):
         """Default callback for get_label/set_label
         """
         if label:
-            self.label=label
+            self.label = label
         elif resp:
-            self.label=resp.label.decode().replace("\x00", "")
+            self.label = resp.label.decode().replace("\x00", "")
 
-    def get_location(self,callb=None):
+    def get_location(self, callb=None):
         """Convenience method to request the location from the device
 
         This method will check whether the value has already been retrieved from the device,
@@ -432,32 +498,31 @@ class Device(aio.DatagramProtocol):
             :rtype: str
         """
         if self.location is None:
-            mypartial=partial(self.resp_set_location)
+            mypartial = partial(self.resp_set_location)
             if callb:
-                mycallb=lambda x,y:(mypartial(y),callb(x,y))
+                mycallb = lambda x, y: (mypartial(y), callb(x, y))
             else:
-                mycallb=lambda x,y:mypartial(y)
-            response = self.req_with_resp(GetLocation, StateLocation,callb=mycallb )
+                mycallb = lambda x, y: mypartial(y)
+            response = self.req_with_resp(GetLocation, StateLocation, callb=mycallb)
         return self.location
 
-    #def set_location(self, value,callb=None):
-        #mypartial=partial(self.resp_set_location,location=value)
-        #if callb:
-            #self.req_with_ack(SetLocation, {"location": value},lambda x,y:(mypartial(y),callb(x,y)) )
-        #else:
-            #self.req_with_ack(SetLocation, {"location": value},lambda x,y:mypartial(y) )
+    # def set_location(self, value,callb=None):
+    # mypartial=partial(self.resp_set_location,location=value)
+    # if callb:
+    # self.req_with_ack(SetLocation, {"location": value},lambda x,y:(mypartial(y),callb(x,y)) )
+    # else:
+    # self.req_with_ack(SetLocation, {"location": value},lambda x,y:mypartial(y) )
 
     def resp_set_location(self, resp, location=None):
         """Default callback for get_location/set_location
         """
         if location:
-            self.location=location
+            self.location = location
         elif resp:
-            self.location=resp.label.decode().replace("\x00", "")
-            #self.resp_set_label(resp)
+            self.location = resp.label.decode().replace("\x00", "")
+            # self.resp_set_label(resp)
 
-
-    def get_group(self,callb=None):
+    def get_group(self, callb=None):
         """Convenience method to request the group from the device
 
         This method will check whether the value has already been retrieved from the device,
@@ -472,31 +537,30 @@ class Device(aio.DatagramProtocol):
             :rtype: str
         """
         if self.group is None:
-            mypartial=partial(self.resp_set_group)
+            mypartial = partial(self.resp_set_group)
             if callb:
-                mycallb=lambda x,y:(mypartial(y),callb(x,y))
+                mycallb = lambda x, y: (mypartial(y), callb(x, y))
             else:
-                mycallb=lambda x,y:mypartial(y)
-            response = self.req_with_resp(GetGroup, StateGroup, callb=callb )
+                mycallb = lambda x, y: mypartial(y)
+            response = self.req_with_resp(GetGroup, StateGroup, callb=callb)
         return self.group
 
-    #Not implemented. Why?
-    #def set_group(self, value,callb=None):
-        #if callb:
-            #self.req_with_ack(SetGroup, {"group": value},lambda x,y:(partial(self.resp_set_group,group=value)(y),callb(x,y)) )
-        #else:
-            #self.req_with_ack(SetGroup, {"group": value},lambda x,y:partial(self.resp_set_group,group=value)(y) )
+    # Not implemented. Why?
+    # def set_group(self, value,callb=None):
+    # if callb:
+    # self.req_with_ack(SetGroup, {"group": value},lambda x,y:(partial(self.resp_set_group,group=value)(y),callb(x,y)) )
+    # else:
+    # self.req_with_ack(SetGroup, {"group": value},lambda x,y:partial(self.resp_set_group,group=value)(y) )
 
     def resp_set_group(self, resp, group=None):
         """Default callback for get_group/set_group
         """
         if group:
-            self.group=group
+            self.group = group
         elif resp:
-            self.group=resp.label.decode().replace("\x00", "")
+            self.group = resp.label.decode().replace("\x00", "")
 
-
-    def get_power(self,callb=None):
+    def get_power(self, callb=None):
         """Convenience method to request the power status from the device
 
         This method will check whether the value has already been retrieved from the device,
@@ -511,10 +575,10 @@ class Device(aio.DatagramProtocol):
         :rtype: int
         """
         if self.power_level is None:
-            response = self.req_with_resp(GetPower, StatePower, callb=callb )
+            response = self.req_with_resp(GetPower, StatePower, callb=callb)
         return self.power_level
 
-    def set_power(self, value,callb=None,rapid=False):
+    def set_power(self, value, callb=None, rapid=False):
         """Convenience method to set the power status of the device
 
         This method will send a SetPower message to the device, and request callb be executed
@@ -532,32 +596,31 @@ class Device(aio.DatagramProtocol):
         """
         on = [True, 1, "on"]
         off = [False, 0, "off"]
-        mypartial=partial(self.resp_set_power,power_level=value)
+        mypartial = partial(self.resp_set_power, power_level=value)
         if callb:
-            mycallb=lambda x,y:(mypartial(y),callb(x,y))
+            mycallb = lambda x, y: (mypartial(y), callb(x, y))
         else:
-            mycallb=lambda x,y:mypartial(y)
+            mycallb = lambda x, y: mypartial(y)
         if value in on and not rapid:
-            response = self.req_with_ack(SetPower, {"power_level": 65535},mycallb)
+            response = self.req_with_ack(SetPower, {"power_level": 65535}, mycallb)
         elif value in off and not rapid:
-            response = self.req_with_ack(SetPower, {"power_level": 0},mycallb)
+            response = self.req_with_ack(SetPower, {"power_level": 0}, mycallb)
         elif value in on and rapid:
             response = self.fire_and_forget(SetPower, {"power_level": 65535})
-            self.power_level=65535
+            self.power_level = 65535
         elif value in off and rapid:
             response = self.fire_and_forget(SetPower, {"power_level": 0})
-            self.power_level=0
+            self.power_level = 0
 
     def resp_set_power(self, resp, power_level=None):
         """Default callback for get_power/set_power
         """
         if power_level is not None:
-            self.power_level=power_level
+            self.power_level = power_level
         elif resp:
-            self.power_level=resp.power_level
+            self.power_level = resp.power_level
 
-
-    def get_wififirmware(self,callb=None):
+    def get_wififirmware(self, callb=None):
         """Convenience method to request the wifi firmware info from the device
 
         This method will check whether the value has already been retrieved from the device,
@@ -572,23 +635,25 @@ class Device(aio.DatagramProtocol):
             :rtype: 2-tuple
         """
         if self.wifi_firmware_version is None:
-            mypartial=partial(self.resp_set_wififirmware)
+            mypartial = partial(self.resp_set_wififirmware)
             if callb:
-                mycallb=lambda x,y:(mypartial(y),callb(x,y))
+                mycallb = lambda x, y: (mypartial(y), callb(x, y))
             else:
-                mycallb=lambda x,y:mypartial(y)
-            response = self.req_with_resp(GetWifiFirmware, StateWifiFirmware,mycallb )
-        return (self.wifi_firmware_version,self.wifi_firmware_build_timestamp)
+                mycallb = lambda x, y: mypartial(y)
+            response = self.req_with_resp(GetWifiFirmware, StateWifiFirmware, mycallb)
+        return (self.wifi_firmware_version, self.wifi_firmware_build_timestamp)
 
     def resp_set_wififirmware(self, resp):
         """Default callback for get_wififirmware
         """
         if resp:
-            self.wifi_firmware_version = float(str(str(resp.version >> 16) + "." + str(resp.version & 0xff)))
+            self.wifi_firmware_version = float(
+                str(str(resp.version >> 16) + "." + str(resp.version & 0xFF))
+            )
             self.wifi_firmware_build_timestamp = resp.build
 
-    #Too volatile to be saved
-    def get_wifiinfo(self,callb=None):
+    # Too volatile to be saved
+    def get_wifiinfo(self, callb=None):
         """Convenience method to request the wifi info from the device
 
         This will request the information from the device and request that callb be executed
@@ -600,11 +665,10 @@ class Device(aio.DatagramProtocol):
             :returns: None
             :rtype: None
         """
-        response = self.req_with_resp(GetWifiInfo, StateWifiInfo,callb=callb )
+        response = self.req_with_resp(GetWifiInfo, StateWifiInfo, callb=callb)
         return None
 
-
-    def get_hostfirmware(self,callb=None):
+    def get_hostfirmware(self, callb=None):
         """Convenience method to request the device firmware info from the device
 
         This method will check whether the value has already been retrieved from the device,
@@ -619,23 +683,25 @@ class Device(aio.DatagramProtocol):
         :rtype: str
         """
         if self.host_firmware_version is None:
-            mypartial=partial(self.resp_set_hostfirmware)
+            mypartial = partial(self.resp_set_hostfirmware)
             if callb:
-                mycallb=lambda x,y:(mypartial(y),callb(x,y))
+                mycallb = lambda x, y: (mypartial(y), callb(x, y))
             else:
-                mycallb=lambda x,y:mypartial(y)
-            response = self.req_with_resp(GetHostFirmware, StateHostFirmware,mycallb )
-        return (self.host_firmware_version,self.host_firmware_build_timestamp)
+                mycallb = lambda x, y: mypartial(y)
+            response = self.req_with_resp(GetHostFirmware, StateHostFirmware, mycallb)
+        return (self.host_firmware_version, self.host_firmware_build_timestamp)
 
     def resp_set_hostfirmware(self, resp):
         """Default callback for get_hostfirmware
         """
         if resp:
-            self.host_firmware_version = float(str(str(resp.version >> 16) + "." + str(resp.version & 0xff)))
+            self.host_firmware_version = float(
+                str(str(resp.version >> 16) + "." + str(resp.version & 0xFF))
+            )
             self.host_firmware_build_timestamp = resp.build
 
-    #Too volatile to be saved
-    def get_hostinfo(self,callb=None):
+    # Too volatile to be saved
+    def get_hostinfo(self, callb=None):
         """Convenience method to request the device info from the device
 
         This will request the information from the device and request that callb be executed
@@ -647,10 +713,10 @@ class Device(aio.DatagramProtocol):
         :returns: None
         :rtype: None
         """
-        response = self.req_with_resp(GetInfo, StateInfo,callb=callb )
+        response = self.req_with_resp(GetInfo, StateInfo, callb=callb)
         return None
 
-    def get_version(self,callb=None):
+    def get_version(self, callb=None):
         """Convenience method to request the version from the device
 
         This method will check whether the value has already been retrieved from the device,
@@ -665,13 +731,13 @@ class Device(aio.DatagramProtocol):
             :rtype: str
         """
         if self.vendor is None:
-            mypartial=partial(self.resp_set_version)
+            mypartial = partial(self.resp_set_version)
             if callb:
-                mycallb=lambda x,y:(mypartial(y),callb(x,y))
+                mycallb = lambda x, y: (mypartial(y), callb(x, y))
             else:
-                mycallb=lambda x,y:mypartial(y)
-            response = self.req_with_resp(GetVersion, StateVersion,callb=mycallb )
-        return (self.host_firmware_version,self.host_firmware_build_timestamp)
+                mycallb = lambda x, y: mypartial(y)
+            response = self.req_with_resp(GetVersion, StateVersion, callb=mycallb)
+        return (self.host_firmware_version, self.host_firmware_build_timestamp)
 
     def resp_set_version(self, resp):
         """Default callback for get_version
@@ -700,20 +766,38 @@ class Device(aio.DatagramProtocol):
         """Convenience to string method.
         """
         host_build_ns = self.host_firmware_build_timestamp
-        host_build_s = datetime.datetime.utcfromtimestamp(host_build_ns/1000000000) if host_build_ns != None else None
+        host_build_s = (
+            datetime.datetime.utcfromtimestamp(host_build_ns / 1000000000)
+            if host_build_ns != None
+            else None
+        )
         wifi_build_ns = self.wifi_firmware_build_timestamp
-        wifi_build_s = datetime.datetime.utcfromtimestamp(wifi_build_ns/1000000000) if wifi_build_ns != None else None
-        s = "Host Firmware Build Timestamp: {} ({} UTC)\n".format(host_build_ns, host_build_s)
-        s += indent + "Host Firmware Build Version: {}\n".format(self.host_firmware_version)
-        s += indent + "Wifi Firmware Build Timestamp: {} ({} UTC)\n".format(wifi_build_ns, wifi_build_s)
-        s += indent + "Wifi Firmware Build Version: {}\n".format(self.wifi_firmware_version)
+        wifi_build_s = (
+            datetime.datetime.utcfromtimestamp(wifi_build_ns / 1000000000)
+            if wifi_build_ns != None
+            else None
+        )
+        s = "Host Firmware Build Timestamp: {} ({} UTC)\n".format(
+            host_build_ns, host_build_s
+        )
+        s += indent + "Host Firmware Build Version: {}\n".format(
+            self.host_firmware_version
+        )
+        s += indent + "Wifi Firmware Build Timestamp: {} ({} UTC)\n".format(
+            wifi_build_ns, wifi_build_s
+        )
+        s += indent + "Wifi Firmware Build Version: {}\n".format(
+            self.wifi_firmware_version
+        )
         return s
 
     def device_product_str(self, indent):
         """Convenience to string method.
         """
         s = "Vendor: {}\n".format(self.vendor)
-        s += indent + "Product: {}\n".format((self.product and product_map[self.product]) or "Unknown")
+        s += indent + "Product: {}\n".format(
+            (self.product and product_map[self.product]) or "Unknown"
+        )
         s += indent + "Version: {}\n".format(self.version)
         return s
 
@@ -723,12 +807,18 @@ class Device(aio.DatagramProtocol):
         time = resp.time
         uptime = resp.uptime
         downtime = resp.downtime
-        time_s = datetime.datetime.utcfromtimestamp(time/1000000000) if time != None else None
+        time_s = (
+            datetime.datetime.utcfromtimestamp(time / 1000000000)
+            if time != None
+            else None
+        )
         uptime_s = round(nanosec_to_hours(uptime), 2) if uptime != None else None
         downtime_s = round(nanosec_to_hours(downtime), 2) if downtime != None else None
         s = "Current Time: {} ({} UTC)\n".format(time, time_s)
         s += indent + "Uptime (ns): {} ({} hours)\n".format(uptime, uptime_s)
-        s += indent + "Last Downtime Duration +/-5s (ns): {} ({} hours)\n".format(downtime, downtime_s)
+        s += indent + "Last Downtime Duration +/-5s (ns): {} ({} hours)\n".format(
+            downtime, downtime_s
+        )
         return s
 
     def device_radio_str(self, resp, indent="  "):
@@ -742,7 +832,7 @@ class Device(aio.DatagramProtocol):
         s += indent + "Wifi RX (bytes): {}\n".format(rx)
         return s
 
-    def register_callback(self,callb):
+    def register_callback(self, callb):
         """Method used to register a default call back to be called when data is received
 
             :param callb: The calllback to be executed.
@@ -750,6 +840,7 @@ class Device(aio.DatagramProtocol):
 
         """
         self.default_callb = callb
+
 
 class Light(Device):
     """Connection to a given Lifx light device.
@@ -775,7 +866,7 @@ class Light(Device):
         self.color_zones = None
         self.infrared_brightness = None
 
-    def get_power(self,callb=None):
+    def get_power(self, callb=None):
         """Convenience method to request the power status from the device
 
         This method will check whether the value has already been retrieved from the device,
@@ -790,10 +881,10 @@ class Light(Device):
         :rtype: int
         """
         if self.power_level is None:
-            response = self.req_with_resp(LightGetPower, LightStatePower, callb=callb )
+            response = self.req_with_resp(LightGetPower, LightStatePower, callb=callb)
         return self.power_level
 
-    def set_power(self, value,callb=None,duration=0,rapid=False):
+    def set_power(self, value, callb=None, duration=0, rapid=False):
         """Convenience method to set the power status of the device
 
         This method will send a SetPower message to the device, and request callb be executed
@@ -817,30 +908,38 @@ class Light(Device):
             myvalue = 65535
         else:
             myvalue = 0
-        mypartial=partial(self.resp_set_lightpower,power_level=myvalue)
+        mypartial = partial(self.resp_set_lightpower, power_level=myvalue)
         if callb:
-            mycallb=lambda x,y:(mypartial(y),callb(x,y))
+            mycallb = lambda x, y: (mypartial(y), callb(x, y))
         else:
-            mycallb=lambda x,y:mypartial(y)
+            mycallb = lambda x, y: mypartial(y)
         if not rapid:
-            response = self.req_with_ack(LightSetPower, {"power_level": myvalue, "duration": duration},callb=mycallb)
+            response = self.req_with_ack(
+                LightSetPower,
+                {"power_level": myvalue, "duration": duration},
+                callb=mycallb,
+            )
         else:
-            response = self.fire_and_forget(LightSetPower, {"power_level": myvalue, "duration": duration}, num_repeats=1)
-            self.power_level=myvalue
+            response = self.fire_and_forget(
+                LightSetPower,
+                {"power_level": myvalue, "duration": duration},
+                num_repeats=1,
+            )
+            self.power_level = myvalue
             if callb:
-                callb(self,None)
+                callb(self, None)
 
-    #Here lightpower because LightStatePower message will give lightpower
+    # Here lightpower because LightStatePower message will give lightpower
     def resp_set_lightpower(self, resp, power_level=None):
         """Default callback for set_power
         """
         if power_level is not None:
-            self.power_level=power_level
+            self.power_level = power_level
         elif resp:
-            self.power_level=resp.power_level
+            self.power_level = resp.power_level
 
     # LightGet, color, power_level, label
-    def get_color(self,callb=None):
+    def get_color(self, callb=None):
         """Convenience method to request the colour status from the device
 
         This method will check whether the value has already been retrieved from the device,
@@ -877,28 +976,32 @@ class Light(Device):
             :rtype: None
         """
         if len(value) == 4:
-            mypartial=partial(self.resp_set_light,color=value)
+            mypartial = partial(self.resp_set_light, color=value)
             if callb:
-                mycallb=lambda x,y:(mypartial(y),callb(x,y))
+                mycallb = lambda x, y: (mypartial(y), callb(x, y))
             else:
-                mycallb=lambda x,y:mypartial(y)
-            #try:
+                mycallb = lambda x, y: mypartial(y)
+            # try:
             if rapid:
-                self.fire_and_forget(LightSetColor, {"color": value, "duration": duration}, num_repeats=1)
-                self.resp_set_light(None,color=value)
+                self.fire_and_forget(
+                    LightSetColor, {"color": value, "duration": duration}, num_repeats=1
+                )
+                self.resp_set_light(None, color=value)
                 if callb:
-                    callb(self,None)
+                    callb(self, None)
             else:
-                self.req_with_ack(LightSetColor, {"color": value, "duration": duration},callb=mycallb)
-            #except WorkflowException as e:
-                #print(e)
+                self.req_with_ack(
+                    LightSetColor, {"color": value, "duration": duration}, callb=mycallb
+                )
+            # except WorkflowException as e:
+            # print(e)
 
-    #Here light because LightState message will give light
+    # Here light because LightState message will give light
     def resp_set_light(self, resp, color=None):
         """Default callback for set_color
         """
         if color:
-            self.color=color
+            self.color = color
         elif resp:
             self.power_level = resp.power_level
             self.color = resp.color
@@ -927,9 +1030,20 @@ class Light(Device):
             "start_index": start_index,
             "end_index": end_index,
         }
-        self.req_with_resp(MultiZoneGetColorZones, MultiZoneStateMultiZone, payload=args, callb=callb)
+        self.req_with_resp(
+            MultiZoneGetColorZones, MultiZoneStateMultiZone, payload=args, callb=callb
+        )
 
-    def set_color_zones(self, start_index, end_index, color, duration=0, apply=1, callb=None, rapid=False):
+    def set_color_zones(
+        self,
+        start_index,
+        end_index,
+        color,
+        duration=0,
+        apply=1,
+        callb=None,
+        rapid=False,
+    ):
         """Convenience method to set the colour status zone of the device
 
         This method will send a MultiZoneSetColorZones message to the device, and request callb be executed
@@ -962,11 +1076,11 @@ class Light(Device):
                 "apply": apply,
             }
 
-            mypartial=partial(self.resp_set_multizonemultizone, args=args)
+            mypartial = partial(self.resp_set_multizonemultizone, args=args)
             if callb:
-                mycallb=lambda x,y:(mypartial(y),callb(x,y))
+                mycallb = lambda x, y: (mypartial(y), callb(x, y))
             else:
-                mycallb=lambda x,y:mypartial(y)
+                mycallb = lambda x, y: mypartial(y)
 
             if rapid:
                 self.fire_and_forget(MultiZoneSetColorZones, args, num_repeats=1)
@@ -980,13 +1094,13 @@ class Light(Device):
         """
         if args:
             if self.color_zones:
-                for i in range(args["start_index"], args["end_index"]+1):
+                for i in range(args["start_index"], args["end_index"] + 1):
                     self.color_zones[i] = args["color"]
         elif resp:
             if self.color_zones is None:
                 self.color_zones = [None] * resp.count
-            for i in range(resp.index, min(resp.index+8, resp.count)):
-                self.color_zones[i] = resp.color[i-resp.index]
+            for i in range(resp.index, min(resp.index + 8, resp.count)):
+                self.color_zones[i] = resp.color[i - resp.index]
 
     # value should be a dictionary with the the following keys: transient, color, period, cycles, skew_ratio, waveform
     def set_waveform(self, value, callb=None, rapid=False):
@@ -1042,7 +1156,7 @@ class Light(Device):
                 self.req_with_ack(LightSetWaveformOptional, value, callb=callb)
 
     # Infrared get maximum brightness, infrared_brightness
-    def get_infrared(self,callb=None):
+    def get_infrared(self, callb=None):
         """Convenience method to request the infrared brightness from the device
 
         This method will check whether the value has already been retrieved from the device,
@@ -1056,7 +1170,7 @@ class Light(Device):
         :returns: The cached value
         :rtype: int
         """
-        response = self.req_with_resp(LightGetInfrared, LightStateInfrared,callb=callb)
+        response = self.req_with_resp(LightGetInfrared, LightStateInfrared, callb=callb)
         return self.infrared_brightness
 
     # Infrared set maximum brightness, infrared_brightness
@@ -1078,20 +1192,30 @@ class Light(Device):
             :returns: None
             :rtype: None
         """
-        mypartial=partial(self.resp_set_infrared,infrared_brightness=infrared_brightness)
+        mypartial = partial(
+            self.resp_set_infrared, infrared_brightness=infrared_brightness
+        )
         if callb:
-            mycallb=lambda x,y:(mypartial(y),callb(x,y))
+            mycallb = lambda x, y: (mypartial(y), callb(x, y))
         else:
-            mycallb=lambda x,y:mypartial(y)
+            mycallb = lambda x, y: mypartial(y)
         if rapid:
-            self.fire_and_forget(LightSetInfrared, {"infrared_brightness": infrared_brightness}, num_repeats=1)
-            self.resp_set_infrared(None,infrared_brightness=infrared_brightness)
+            self.fire_and_forget(
+                LightSetInfrared,
+                {"infrared_brightness": infrared_brightness},
+                num_repeats=1,
+            )
+            self.resp_set_infrared(None, infrared_brightness=infrared_brightness)
             if callb:
-                callb(self,None)
+                callb(self, None)
         else:
-            self.req_with_ack(LightSetInfrared, {"infrared_brightness": infrared_brightness}, callb=mycallb)
+            self.req_with_ack(
+                LightSetInfrared,
+                {"infrared_brightness": infrared_brightness},
+                callb=mycallb,
+            )
 
-    #Here infrared because StateInfrared message will give infrared
+    # Here infrared because StateInfrared message will give infrared
     def resp_set_infrared(self, resp, infrared_brightness=None):
         """Default callback for set_infrared/get_infrared
         """
@@ -1100,7 +1224,7 @@ class Light(Device):
         elif resp:
             self.infrared_brightness = resp.infrared_brightness
 
-    def get_accesspoint(self,callb=None):
+    def get_accesspoint(self, callb=None):
         """Convenience method to request the access point available
 
         This method will do nothing unless a call back is passed to it.
@@ -1111,7 +1235,7 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        response = self.req_with_resp(GetAccessPoint, StateAccessPoint,callb=callb)
+        response = self.req_with_resp(GetAccessPoint, StateAccessPoint, callb=callb)
         return None
 
     def __str__(self):
@@ -1120,8 +1244,8 @@ class Light(Device):
         s += indent + "Color (HSBK): {}\n".format(self.color)
         s += indent + self.device_firmware_str(indent)
         s += indent + self.device_product_str(indent)
-        #s += indent + self.device_time_str(indent)
-        #s += indent + self.device_radio_str(indent)
+        # s += indent + self.device_time_str(indent)
+        # s += indent + self.device_radio_str(indent)
         return s
 
 
@@ -1148,13 +1272,21 @@ class LifxDiscovery(aio.DatagramProtocol):
         :rtype: DatagramProtocol
     """
 
-    def __init__(self, loop, parent=None, ipv6prefix=None, discovery_interval=DISCOVERY_INTERVAL, discovery_step=DISCOVERY_STEP, broadcast_ip=UDP_BROADCAST_IP):
-        self.lights = {} #Known devices indexed by mac addresses
-        self.parent = parent #Where to register new devices
+    def __init__(
+        self,
+        loop,
+        parent=None,
+        ipv6prefix=None,
+        discovery_interval=DISCOVERY_INTERVAL,
+        discovery_step=DISCOVERY_STEP,
+        broadcast_ip=UDP_BROADCAST_IP,
+    ):
+        self.lights = {}  # Known devices indexed by mac addresses
+        self.parent = parent  # Where to register new devices
         self.transport = None
         self.loop = loop
         self.task = None
-        self.source_id = random.randint(0, (2**32)-1)
+        self.source_id = random.randint(0, (2 ** 32) - 1)
         self.ipv6prefix = ipv6prefix
         self.discovery_interval = discovery_interval
         self.discovery_step = discovery_step
@@ -1164,7 +1296,8 @@ class LifxDiscovery(aio.DatagramProtocol):
     def start(self, listen_ip=LISTEN_IP, listen_port=0):
         """Start discovery task."""
         coro = self.loop.create_datagram_endpoint(
-            lambda: self, local_addr=(listen_ip, listen_port))
+            lambda: self, local_addr=(listen_ip, listen_port)
+        )
 
         self.task = self.loop.create_task(coro)
         return self.task
@@ -1172,7 +1305,7 @@ class LifxDiscovery(aio.DatagramProtocol):
     def connection_made(self, transport):
         """Method run when the UDP broadcast server is started
         """
-        #print('started')
+        # print('started')
         self.transport = transport
         sock = self.transport.get_extra_info("socket")
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -1198,7 +1331,9 @@ class LifxDiscovery(aio.DatagramProtocol):
         if mac_addr == BROADCAST_MAC:
             return
 
-        if type(response) == StateService and response.service == 1: # only look for UDP services
+        if (
+            type(response) == StateService and response.service == 1
+        ):  # only look for UDP services
             # discovered
             remote_port = response.port
         elif type(response) == LightState:
@@ -1231,7 +1366,8 @@ class LifxDiscovery(aio.DatagramProtocol):
             self.lights[mac_addr] = light
 
         coro = self.loop.create_datagram_endpoint(
-            lambda: light, family=family, remote_addr=(remote_ip, remote_port))
+            lambda: light, family=family, remote_addr=(remote_ip, remote_port)
+        )
 
         light.task = self.loop.create_task(coro)
 
@@ -1241,19 +1377,29 @@ class LifxDiscovery(aio.DatagramProtocol):
         if self.transport:
             if self.discovery_countdown <= 0:
                 self.discovery_countdown = self.discovery_interval
-                msg = GetService(BROADCAST_MAC, self.source_id, seq_num=0, payload={}, ack_requested=False, response_requested=True)
-                self.transport.sendto(msg.generate_packed_message(), (self.broadcast_ip, UDP_BROADCAST_PORT))
+                msg = GetService(
+                    BROADCAST_MAC,
+                    self.source_id,
+                    seq_num=0,
+                    payload={},
+                    ack_requested=False,
+                    response_requested=True,
+                )
+                self.transport.sendto(
+                    msg.generate_packed_message(),
+                    (self.broadcast_ip, UDP_BROADCAST_PORT),
+                )
             else:
                 self.discovery_countdown -= self.discovery_step
             self.loop.call_later(self.discovery_step, self.discover)
 
-    def register(self,alight):
+    def register(self, alight):
         """Proxy method to register the device with the parent.
         """
         if self.parent:
             self.parent.register(alight)
 
-    def unregister(self,alight):
+    def unregister(self, alight):
         """Proxy method to unregister the device with the parent.
         """
         if self.parent:
@@ -1283,7 +1429,12 @@ class LifxScan:
     async def scan(self, timeout=1):
         """Return a list of local IP addresses on interfaces with LIFX bulbs."""
         adapters = await self.loop.run_in_executor(None, ifaddr.get_adapters)
-        ips = [ip.ip for adapter in ifaddr.get_adapters() for ip in adapter.ips if ip.is_IPv4]
+        ips = [
+            ip.ip
+            for adapter in ifaddr.get_adapters()
+            for ip in adapter.ips
+            if ip.is_IPv4
+        ]
 
         if not ips:
             return []

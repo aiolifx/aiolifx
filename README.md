@@ -2,6 +2,10 @@
 
 aiolifx is a Python 3/asyncio library to control Lifx LED lightbulbs over your LAN.
 
+[![PyPI version fury.io](https://badge.fury.io/py/aiolifx.svg)](https://pypi.python.org/pypi/aiolifx)
+[![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](https://lbesson.mit-licen)
+[![GITHUB-BADGE](https://github.com/frawau/aiolifx/workflows/black/badge.svg)](https://github.com/psf/black)
+
 Most of it was taken from Meghan Clarkk lifxlan package (https://github.com/mclarkk)
 and adapted to Python 3 (and asyncio obviously)
 
@@ -12,6 +16,12 @@ We are on PyPi so
      pip3 install aiolifx
 or
      python3 -m pip install aiolifx
+
+After installation, the utility
+
+    aiolifx
+
+can be used to test/control devices.
 
 NOTE: When installing with Python 3.4, the installation produce an error message
       (syntax error). This can be safely ignored.
