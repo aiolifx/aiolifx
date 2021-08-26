@@ -19,7 +19,10 @@ setuptools.setup(
     url="http://github.com/frawau/aiolifx",
     keywords=["lifx", "light", "automation"],
     license="MIT",
-    install_requires=["bitstring", "ifaddr",],
+    install_requires=[
+        "bitstring",
+        "ifaddr",
+    ],
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         # Pick your license as you wish (should match "license" above)

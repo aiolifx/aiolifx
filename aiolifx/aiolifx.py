@@ -40,7 +40,7 @@ DISCOVERY_STEP = 5
 
 
 def mac_to_ipv6_linklocal(mac, prefix="fe80::"):
-    """ Translate a MAC address into an IPv6 address in the prefixed network.
+    """Translate a MAC address into an IPv6 address in the prefixed network.
 
     This function calculates the EUI (Extended Unique Identifier) from the given
     MAC address and prepend the needed prefix to come up with a valid IPv6 address.
@@ -73,10 +73,10 @@ def mac_to_ipv6_linklocal(mac, prefix="fe80::"):
 def nanosec_to_hours(ns):
     """Convert nanoseconds to hours
 
-        :param ns: Number of nanoseconds
-        :type ns: into
-        :returns: ns/(1000000000.0*60*60)
-        :rtype: int
+    :param ns: Number of nanoseconds
+    :type ns: into
+    :returns: ns/(1000000000.0*60*60)
+    :rtype: int
     """
     return ns / (1000000000.0 * 60 * 60)
 
@@ -84,18 +84,18 @@ def nanosec_to_hours(ns):
 class Device(aio.DatagramProtocol):
     """Connection to a given Lifx device.
 
-        :param loop: The asyncio loop being used
-        :type loop: asyncio.AbstractEventLoop
-        :param: mac_addr: The device MAC address aa:bb:cc:dd:ee:ff
-        :type mac_addr: string
-        :param ip_addr: The devie IP address (either IPv4 or IPv6)
-        :type ip_addr: string
-        :param port: The port used by the unicast connection
-        :type port: into
-        :param parent: Parent object with register/unregister methods
-        :type parent: object
-        :returns: an asyncio DatagramProtocol to handle communication with the device
-        :rtype: DatagramProtocol
+    :param loop: The asyncio loop being used
+    :type loop: asyncio.AbstractEventLoop
+    :param: mac_addr: The device MAC address aa:bb:cc:dd:ee:ff
+    :type mac_addr: string
+    :param ip_addr: The devie IP address (either IPv4 or IPv6)
+    :type ip_addr: string
+    :param port: The port used by the unicast connection
+    :type port: into
+    :param parent: Parent object with register/unregister methods
+    :type parent: object
+    :returns: an asyncio DatagramProtocol to handle communication with the device
+    :rtype: DatagramProtocol
     """
 
     def __init__(self, loop, mac_addr, ip_addr, port, parent=None):
@@ -133,8 +133,8 @@ class Device(aio.DatagramProtocol):
     def seq_next(self):
         """Method to return the next sequence value to use in messages.
 
-            :returns: next number in sequensce (modulo 128)
-            :rtype: int
+        :returns: next number in sequensce (modulo 128)
+        :rtype: int
         """
         self.seq = (self.seq + 1) % 128
         return self.seq
@@ -144,8 +144,7 @@ class Device(aio.DatagramProtocol):
     #
 
     def connection_made(self, transport):
-        """Method run when the connection to the lamp is established
-        """
+        """Method run when the connection to the lamp is established"""
         self.transport = transport
         self.register()
 
@@ -191,16 +190,14 @@ class Device(aio.DatagramProtocol):
             self.default_callb(response)
 
     def register(self):
-        """Proxy method to register the device with the parent.
-        """
+        """Proxy method to register the device with the parent."""
         if not self.registered:
             self.registered = True
             if self.parent:
                 self.parent.register(self)
 
     def unregister(self):
-        """Proxy method to unregister the device with the parent.
-        """
+        """Proxy method to unregister the device with the parent."""
         if self.registered:
             # Only if we have not received any message recently.
             if (
@@ -213,8 +210,7 @@ class Device(aio.DatagramProtocol):
                     self.parent.unregister(self)
 
     def cleanup(self):
-        """Method to call to cleanly terminate the connection to the device.
-        """
+        """Method to call to cleanly terminate the connection to the device."""
         if self.transport:
             self.transport.close()
             self.transport = None
@@ -229,11 +225,11 @@ class Device(aio.DatagramProtocol):
     async def fire_sending(self, msg, num_repeats):
         """Coroutine used to send message to the device when no response is needed.
 
-            :param msg: Message to send
-            :type msg: aiolifx.
-            :param num_repeats: number of times the message is to be sent.
-            :returns: The coroutine that can be scheduled to run
-            :rtype: coroutine
+        :param msg: Message to send
+        :type msg: aiolifx.
+        :param num_repeats: number of times the message is to be sent.
+        :returns: The coroutine that can be scheduled to run
+        :rtype: coroutine
         """
         if num_repeats is None:
             num_repeats = self.retry_count
@@ -253,16 +249,16 @@ class Device(aio.DatagramProtocol):
     ):
         """Method used to send message to the device when no response/ack is needed.
 
-            :param msg_type: The type of the message to send, a subclass of aiolifx.Message
-            :type msg_type: class
-            :param payload: value to use when instantiating msg_type
-            :type payload: dict
-            :param timeout_secs: Not used. Present here only for consistency with other methods
-            :type timeout_secs: None
-            :param num_repeats: Number of times the message is to be sent.
-            :type num_repeats: int
-            :returns: Always True
-            :rtype: bool
+        :param msg_type: The type of the message to send, a subclass of aiolifx.Message
+        :type msg_type: class
+        :param payload: value to use when instantiating msg_type
+        :type payload: dict
+        :param timeout_secs: Not used. Present here only for consistency with other methods
+        :type timeout_secs: None
+        :param num_repeats: Number of times the message is to be sent.
+        :type num_repeats: int
+        :returns: Always True
+        :rtype: bool
         """
         msg = msg_type(
             self.mac_addr,
@@ -324,18 +320,18 @@ class Device(aio.DatagramProtocol):
     ):
         """Method to send a message expecting to receive an ACK.
 
-            :param msg_type: The type of the message to send, a subclass of aiolifx.Message
-            :type msg_type: class
-            :param payload: value to use when instantiating msg_type
-            :type payload: dict
-            :param callb: A callback that will be executed when the ACK is received in datagram_received
-            :type callb: callable
-            :param timeout_secs: Number of seconds to wait for an ack
-            :type timeout_secs: int
-            :param max_attempts: .
-            :type max_attempts: int
-            :returns: True
-            :rtype: bool
+        :param msg_type: The type of the message to send, a subclass of aiolifx.Message
+        :type msg_type: class
+        :param payload: value to use when instantiating msg_type
+        :type payload: dict
+        :param callb: A callback that will be executed when the ACK is received in datagram_received
+        :type callb: callable
+        :param timeout_secs: Number of seconds to wait for an ack
+        :type timeout_secs: int
+        :param max_attempts: .
+        :type max_attempts: int
+        :returns: True
+        :rtype: bool
         """
         msg = msg_type(
             self.mac_addr,
@@ -361,20 +357,20 @@ class Device(aio.DatagramProtocol):
     ):
         """Method to send a message expecting to receive a response.
 
-            :param msg_type: The type of the message to send, a subclass of aiolifx.Message
-            :type msg_type: class
-            :param response_type: The type of the response to expect, a subclass of aiolifx.Message
-            :type response_type: class
-            :param payload: value to use when instantiating msg_type
-            :type payload: dict
-            :param callb: A callback that will be executed when the response is received in datagram_received
-            :type callb: callable
-            :param timeout_secs: Number of seconds to wait for a response
-            :type timeout_secs: int
-            :param max_attempts: .
-            :type max_attempts: int
-            :returns: True
-            :rtype: bool
+        :param msg_type: The type of the message to send, a subclass of aiolifx.Message
+        :type msg_type: class
+        :param response_type: The type of the response to expect, a subclass of aiolifx.Message
+        :type response_type: class
+        :param payload: value to use when instantiating msg_type
+        :type payload: dict
+        :param callb: A callback that will be executed when the response is received in datagram_received
+        :type callb: callable
+        :param timeout_secs: Number of seconds to wait for a response
+        :type timeout_secs: int
+        :param max_attempts: .
+        :type max_attempts: int
+        :returns: True
+        :rtype: bool
         """
         msg = msg_type(
             self.mac_addr,
@@ -400,18 +396,18 @@ class Device(aio.DatagramProtocol):
     ):
         """Method to send a message expecting to receive both a response and an ack.
 
-            :param msg_type: The type of the message to send, a subclass of aiolifx.Message
-            :type msg_type: class
-            :param payload: value to use when instantiating msg_type
-            :type payload: dict
-            :param callb: A callback that will be executed when the response is received in datagram_received
-            :type callb: callable
-            :param timeout_secs: Number of seconds to wait for a response
-            :type timeout_secs: int
-            :param max_attempts: .
-            :type max_attempts: int
-            :returns: True
-            :rtype: bool
+        :param msg_type: The type of the message to send, a subclass of aiolifx.Message
+        :type msg_type: class
+        :param payload: value to use when instantiating msg_type
+        :type payload: dict
+        :param callb: A callback that will be executed when the response is received in datagram_received
+        :type callb: callable
+        :param timeout_secs: Number of seconds to wait for a response
+        :type timeout_secs: int
+        :param max_attempts: .
+        :type max_attempts: int
+        :returns: True
+        :rtype: bool
         """
         msg = msg_type(
             self.mac_addr,
@@ -476,8 +472,7 @@ class Device(aio.DatagramProtocol):
             self.req_with_ack(SetLabel, {"label": value}, lambda x, y: mypartial(y))
 
     def resp_set_label(self, resp, label=None):
-        """Default callback for get_label/set_label
-        """
+        """Default callback for get_label/set_label"""
         if label:
             self.label = label
         elif resp:
@@ -514,8 +509,7 @@ class Device(aio.DatagramProtocol):
     # self.req_with_ack(SetLocation, {"location": value},lambda x,y:mypartial(y) )
 
     def resp_set_location(self, resp, location=None):
-        """Default callback for get_location/set_location
-        """
+        """Default callback for get_location/set_location"""
         if location:
             self.location = location
         elif resp:
@@ -553,8 +547,7 @@ class Device(aio.DatagramProtocol):
     # self.req_with_ack(SetGroup, {"group": value},lambda x,y:partial(self.resp_set_group,group=value)(y) )
 
     def resp_set_group(self, resp, group=None):
-        """Default callback for get_group/set_group
-        """
+        """Default callback for get_group/set_group"""
         if group:
             self.group = group
         elif resp:
@@ -613,8 +606,7 @@ class Device(aio.DatagramProtocol):
             self.power_level = 0
 
     def resp_set_power(self, resp, power_level=None):
-        """Default callback for get_power/set_power
-        """
+        """Default callback for get_power/set_power"""
         if power_level is not None:
             self.power_level = power_level
         elif resp:
@@ -644,8 +636,7 @@ class Device(aio.DatagramProtocol):
         return (self.wifi_firmware_version, self.wifi_firmware_build_timestamp)
 
     def resp_set_wififirmware(self, resp):
-        """Default callback for get_wififirmware
-        """
+        """Default callback for get_wififirmware"""
         if resp:
             self.wifi_firmware_version = float(
                 str(str(resp.version >> 16) + "." + str(resp.version & 0xFF))
@@ -692,8 +683,7 @@ class Device(aio.DatagramProtocol):
         return (self.host_firmware_version, self.host_firmware_build_timestamp)
 
     def resp_set_hostfirmware(self, resp):
-        """Default callback for get_hostfirmware
-        """
+        """Default callback for get_hostfirmware"""
         if resp:
             self.host_firmware_version = float(
                 str(str(resp.version >> 16) + "." + str(resp.version & 0xFF))
@@ -740,8 +730,7 @@ class Device(aio.DatagramProtocol):
         return (self.host_firmware_version, self.host_firmware_build_timestamp)
 
     def resp_set_version(self, resp):
-        """Default callback for get_version
-        """
+        """Default callback for get_version"""
         if resp:
             self.vendor = resp.vendor
             self.product = resp.product
@@ -751,8 +740,7 @@ class Device(aio.DatagramProtocol):
     #                            Formating
     #
     def device_characteristics_str(self, indent):
-        """Convenience to string method.
-        """
+        """Convenience to string method."""
         s = "{}\n".format(self.label)
         s += indent + "MAC Address: {}\n".format(self.mac_addr)
         s += indent + "IP Address: {}\n".format(self.ip_addr)
@@ -763,8 +751,7 @@ class Device(aio.DatagramProtocol):
         return s
 
     def device_firmware_str(self, indent):
-        """Convenience to string method.
-        """
+        """Convenience to string method."""
         host_build_ns = self.host_firmware_build_timestamp
         host_build_s = (
             datetime.datetime.utcfromtimestamp(host_build_ns / 1000000000)
@@ -792,8 +779,7 @@ class Device(aio.DatagramProtocol):
         return s
 
     def device_product_str(self, indent):
-        """Convenience to string method.
-        """
+        """Convenience to string method."""
         s = "Vendor: {}\n".format(self.vendor)
         s += indent + "Product: {}\n".format(
             (self.product and product_map[self.product]) or "Unknown"
@@ -802,8 +788,7 @@ class Device(aio.DatagramProtocol):
         return s
 
     def device_time_str(self, resp, indent="  "):
-        """Convenience to string method.
-        """
+        """Convenience to string method."""
         time = resp.time
         uptime = resp.uptime
         downtime = resp.downtime
@@ -822,8 +807,7 @@ class Device(aio.DatagramProtocol):
         return s
 
     def device_radio_str(self, resp, indent="  "):
-        """Convenience to string method.
-        """
+        """Convenience to string method."""
         signal = resp.signal
         tx = resp.tx
         rx = resp.rx
@@ -835,8 +819,8 @@ class Device(aio.DatagramProtocol):
     def register_callback(self, callb):
         """Method used to register a default call back to be called when data is received
 
-            :param callb: The calllback to be executed.
-            :type callb: callable
+        :param callb: The calllback to be executed.
+        :type callb: callable
 
         """
         self.default_callb = callb
@@ -845,18 +829,18 @@ class Device(aio.DatagramProtocol):
 class Light(Device):
     """Connection to a given Lifx light device.
 
-            :param loop: The asyncio loop being used
-            :type loop: asyncio.AbstractEventLoop
-            :param: mac_addr: The device MAC address aa:bb:cc:dd:ee:ff
-            :type mac_addr: string
-            :param ip_addr: The devie IP address (either IPv4 or IPv6)
-            :type ip_addr: string
-            :param port: The port used by the unicast connection
-            :type port: into
-            :param parent: Parent object with register/unregister methods
-            :type parent: object
-            :returns: an asyncio DatagramProtocol to handle communication with the device
-            :rtype: DatagramProtocol
+    :param loop: The asyncio loop being used
+    :type loop: asyncio.AbstractEventLoop
+    :param: mac_addr: The device MAC address aa:bb:cc:dd:ee:ff
+    :type mac_addr: string
+    :param ip_addr: The devie IP address (either IPv4 or IPv6)
+    :type ip_addr: string
+    :param port: The port used by the unicast connection
+    :type port: into
+    :param parent: Parent object with register/unregister methods
+    :type parent: object
+    :returns: an asyncio DatagramProtocol to handle communication with the device
+    :rtype: DatagramProtocol
     """
 
     def __init__(self, loop, mac_addr, ip_addr, port=UDP_BROADCAST_PORT, parent=None):
@@ -931,8 +915,7 @@ class Light(Device):
 
     # Here lightpower because LightStatePower message will give lightpower
     def resp_set_lightpower(self, resp, power_level=None):
-        """Default callback for set_power
-        """
+        """Default callback for set_power"""
         if power_level is not None:
             self.power_level = power_level
         elif resp:
@@ -998,8 +981,7 @@ class Light(Device):
 
     # Here light because LightState message will give light
     def resp_set_light(self, resp, color=None):
-        """Default callback for set_color
-        """
+        """Default callback for set_color"""
         if color:
             self.color = color
         elif resp:
@@ -1090,8 +1072,7 @@ class Light(Device):
 
     # A multi-zone MultiZoneGetColorZones returns MultiZoneStateMultiZone -> multizonemultizone
     def resp_set_multizonemultizone(self, resp, args=None):
-        """Default callback for get-color_zones/set_color_zones
-        """
+        """Default callback for get-color_zones/set_color_zones"""
         if args:
             if self.color_zones:
                 for i in range(args["start_index"], args["end_index"] + 1):
@@ -1217,8 +1198,7 @@ class Light(Device):
 
     # Here infrared because StateInfrared message will give infrared
     def resp_set_infrared(self, resp, infrared_brightness=None):
-        """Default callback for set_infrared/get_infrared
-        """
+        """Default callback for set_infrared/get_infrared"""
         if infrared_brightness is not None:
             self.infrared_brightness = infrared_brightness
         elif resp:
@@ -1303,8 +1283,7 @@ class LifxDiscovery(aio.DatagramProtocol):
         return self.task
 
     def connection_made(self, transport):
-        """Method run when the UDP broadcast server is started
-        """
+        """Method run when the UDP broadcast server is started"""
         # print('started')
         self.transport = transport
         sock = self.transport.get_extra_info("socket")
@@ -1372,8 +1351,7 @@ class LifxDiscovery(aio.DatagramProtocol):
         light.task = self.loop.create_task(coro)
 
     def discover(self):
-        """Method to send a discovery message
-        """
+        """Method to send a discovery message"""
         if self.transport:
             if self.discovery_countdown <= 0:
                 self.discovery_countdown = self.discovery_interval
@@ -1394,20 +1372,17 @@ class LifxDiscovery(aio.DatagramProtocol):
             self.loop.call_later(self.discovery_step, self.discover)
 
     def register(self, alight):
-        """Proxy method to register the device with the parent.
-        """
+        """Proxy method to register the device with the parent."""
         if self.parent:
             self.parent.register(alight)
 
     def unregister(self, alight):
-        """Proxy method to unregister the device with the parent.
-        """
+        """Proxy method to unregister the device with the parent."""
         if self.parent:
             self.parent.unregister(alight)
 
     def cleanup(self):
-        """Method to call to cleanly terminate the connection to the device.
-        """
+        """Method to call to cleanly terminate the connection to the device."""
         if self.transport:
             self.transport.close()
             self.transport = None
