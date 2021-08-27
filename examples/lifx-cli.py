@@ -28,8 +28,7 @@ from functools import partial
 
 # Simple bulb control frpm console
 class bulbs:
-    """ A simple class with a register and  unregister methods
-    """
+    """A simple class with a register and  unregister methods"""
 
     def __init__(self):
         self.bulbs = []

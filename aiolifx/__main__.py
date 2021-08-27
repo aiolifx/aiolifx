@@ -31,8 +31,7 @@ UDP_BROADCAST_PORT = 56700
 
 # Simple bulb control frpm console
 class bulbs:
-    """ A simple class with a register and  unregister methods
-    """
+    """A simple class with a register and unregister methods"""
 
     def __init__(self):
         self.bulbs = []
