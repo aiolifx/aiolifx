@@ -17,6 +17,10 @@ for product in json[0]["products"]:
     product_map[product_id] = product["name"]
 
     features = product["features"]
+
+    for upgrade in product["upgrades"]:
+        features.update(upgrade["features"])
+
     if "temperature_range" in features:
         features["min_kelvin"] = features["temperature_range"][0]
         features["max_kelvin"] = features["temperature_range"][1]
