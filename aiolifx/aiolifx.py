@@ -685,8 +685,8 @@ class Device(aio.DatagramProtocol):
     def resp_set_hostfirmware(self, resp):
         """Default callback for get_hostfirmware"""
         if resp:
-            self.host_firmware_version = float(
-                str(str(resp.version >> 16) + "." + str(resp.version & 0xFF))
+            self.host_firmware_version = (
+                str(resp.version >> 16) + "." + str(resp.version & 0xFFFF)
             )
             self.host_firmware_build_timestamp = resp.build
 
