@@ -5,6 +5,7 @@ aiolifx is a Python 3/asyncio library to control Lifx LED lightbulbs over your L
 [![PyPI version fury.io](https://badge.fury.io/py/aiolifx.svg)](https://pypi.python.org/pypi/aiolifx)
 [![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](https://lbesson.mit-licen)
 [![GITHUB-BADGE](https://github.com/frawau/aiolifx/workflows/black/badge.svg)](https://github.com/psf/black)
+[![Downloads](https://pepy.tech/badge/aiolifx/month)](https://pepy.tech/project/aiolifx)
 
 Most of it was taken from Meghan Clarkk lifxlan package (https://github.com/mclarkk)
 and adapted to Python 3 (and asyncio obviously)
