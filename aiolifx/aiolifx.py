@@ -1083,6 +1083,9 @@ class Light(Device):
             try:
                 for i in range(resp.index, min(resp.index + 8, resp.count)):
                     if i > len(self.color_zones) - 1:
+                        self.color_zones += [resp.color[i - resp.index]] * (
+                            i - len(self.color_zones)
+                        )
                         self.color_zones.append(resp.color[i - resp.index])
                     else:
                         self.color_zones[i] = resp.color[i - resp.index]
