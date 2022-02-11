@@ -1080,8 +1080,15 @@ class Light(Device):
         elif resp:
             if self.color_zones is None:
                 self.color_zones = [None] * resp.count
-            for i in range(resp.index, min(resp.index + 8, resp.count)):
-                self.color_zones[i] = resp.color[i - resp.index]
+            try:
+                for i in range(resp.index, min(resp.index + 8, resp.count)):
+                    if i > len(self.color_zones) - 1:
+                        self.color_zones.append(resp.color[i - resp.index])
+                    else:
+                        self.color_zones[i] = resp.color[i - resp.index]
+            except:
+                # I guess this should not happen but...
+                pass
 
     # value should be a dictionary with the the following keys: transient, color, period, cycles, skew_ratio, waveform
     def set_waveform(self, value, callb=None, rapid=False):
