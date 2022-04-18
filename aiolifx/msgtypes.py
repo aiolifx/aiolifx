@@ -1111,6 +1111,210 @@ class LightSetInfrared(Message):
         return payload
 
 
+##### HEV (LIFX Clean) MESSAGES #####
+# https://lan.developer.lifx.com/docs/hev-light-control
+class GetHevCycle(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload={},
+        ack_requested=False,
+        response_requested=False,
+    ):
+        super(GetHevCycle, self).__init__(
+            MSG_IDS[GetHevCycle],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+
+class SetHevCycle(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.enable = payload["enable"]
+        self.duration = payload["duration"]
+        super(SetHevCycle, self).__init__(
+            MSG_IDS[SetHevCycle],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        enable = little_endian(bitstring.pack("uint:8", self.enable))
+        duration = little_endian(bitstring.pack("uint:32", self.duration))
+        payload = enable + duration
+        return payload
+
+
+class StateHevCycle(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.duration = payload["duration"]
+        self.remaining = payload["remaining"]
+        self.last_power = payload["last_power"]
+        super(StateHevCycle, self).__init__(
+            MSG_IDS[StateHevCycle],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        duration = little_endian(bitstring.pack("uint:32", self.duration))
+        remaining = little_endian(bitstring.pack("uint:32", self.remaining))
+        last_power = little_endian(bitstring.pack("uint:8", self.last_power))
+        payload = duration + remaining + last_power
+        return payload
+
+
+class GetHevCycleConfiguration(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload={},
+        ack_requested=False,
+        response_requested=False,
+    ):
+        super(GetHevCycleConfiguration, self).__init__(
+            MSG_IDS[GetHevCycleConfiguration],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+
+class SetHevCycleConfiguration(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.indication = payload["indication"]
+        self.duration = payload["duration"]
+        super(SetHevCycleConfiguration, self).__init__(
+            MSG_IDS[SetHevCycleConfiguration],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        indication = little_endian(bitstring.pack("uint:8", self.indication))
+        duration = little_endian(bitstring.pack("uint:32", self.duration))
+        payload = indication + duration
+        return payload
+
+
+class StateHevCycleConfiguration(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.indication = payload["indication"]
+        self.duration = payload["duration"]
+        super(StateHevCycleConfiguration, self).__init__(
+            MSG_IDS[StateHevCycleConfiguration],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        indication = little_endian(bitstring.pack("uint:8", self.indication))
+        duration = little_endian(bitstring.pack("uint:32", self.duration))
+        payload = indication + duration
+        return payload
+
+
+class GetLastHevCycleResult(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload={},
+        ack_requested=False,
+        response_requested=False,
+    ):
+        super(GetLastHevCycleResult, self).__init__(
+            MSG_IDS[GetLastHevCycleResult],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+
+class StateLastHevCycleResult(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.result = payload["result"]
+        super(StateLastHevCycleResult, self).__init__(
+            MSG_IDS[StateLastHevCycleResult],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        result = little_endian(bitstring.pack("uint:8", self.result))
+        return result
+
+    @property
+    def result_str(self):
+        return LAST_HEV_CYCLE_RESULT.get(self.result, 'UNKNOWN')
+
 ##### MULTIZONE MESSAGES #####
 
 
@@ -1288,6 +1492,14 @@ MSG_IDS = {
     LightGetInfrared: 120,
     LightStateInfrared: 121,
     LightSetInfrared: 122,
+    GetHevCycle: 142,
+    SetHevCycle: 143,
+    StateHevCycle: 144,
+    GetHevCycleConfiguration: 145,
+    SetHevCycleConfiguration: 146,
+    StateHevCycleConfiguration: 147,
+    GetLastHevCycleResult: 148,
+    StateLastHevCycleResult: 149,
     MultiZoneSetColorZones: 501,
     MultiZoneGetColorZones: 502,
     MultiZoneStateZone: 503,
@@ -1300,6 +1512,15 @@ STR_MAP = {65535: "On", 0: "Off", None: "Unknown"}
 
 ZONE_MAP = {0: "NO_APPLY", 1: "APPLY", 2: "APPLY_ONLY"}
 
+LAST_HEV_CYCLE_RESULT = {
+    0: "SUCCESS",
+    1: "BUSY",
+    2: "INTERRUPTED_BY_RESET",
+    3: "INTERRUPTED_BY_HOMEKIT",
+    4: "INTERRUPTED_BY_LAN",
+    5: "INTERRUPTED_BY_CLOUD",
+    255: "NONE",
+}
 
 def str_map(key):
     string_representation = "Unknown"
