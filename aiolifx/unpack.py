@@ -324,6 +324,61 @@ def unpack_lifx_message(packed_message):
             target_addr, source_id, seq_num, payload, ack_requested, response_requested
         )
 
+    elif message_type == MSG_IDS[GetHevCycle]:  # 142
+        message = GetHevCycle(
+            target_addr, source_id, seq_num, {}, ack_requested, response_requested
+        )
+
+    elif message_type == MSG_IDS[SetHevCycle]:  # 143
+        enable, duration = struct.unpack("<BI", payload_str[:5])
+        payload = {"enable": enable == 1, "duration": duration}
+        message = SetHevCycle(
+            target_addr, source_id, seq_num, payload, ack_requested, response_requested
+        )
+
+    elif message_type == MSG_IDS[StateHevCycle]:  # 144
+        duration, remaining, last_power = struct.unpack("<IIB", payload_str[:9])
+        payload = {
+            "duration": duration,
+            "remaining": remaining,
+            "last_power": last_power == 1,
+        }
+        message = StateHevCycle(
+            target_addr, source_id, seq_num, payload, ack_requested, response_requested
+        )
+
+    elif message_type == MSG_IDS[GetHevCycleConfiguration]:  # 145
+        message = GetHevCycleConfiguration(
+            target_addr, source_id, seq_num, {}, ack_requested, response_requested
+        )
+
+    elif message_type == MSG_IDS[SetHevCycleConfiguration]:  # 146
+        indication, duration = struct.unpack("<BI", payload_str[:5])
+        payload = {"indication": indication == 1, "duration": duration}
+        message = SetHevCycleConfiguration(
+            target_addr, source_id, seq_num, payload, ack_requested, response_requested
+        )
+
+    elif message_type == MSG_IDS[StateHevCycleConfiguration]:  # 147
+        indication, duration = struct.unpack("<BI", payload_str[:5])
+        payload = {"indication": indication == 1, "duration": duration}
+        message = StateHevCycleConfiguration(
+            target_addr, source_id, seq_num, payload, ack_requested, response_requested
+        )
+
+    elif message_type == MSG_IDS[GetLastHevCycleResult]:  # 148
+        message = GetLastHevCycleResult(
+            target_addr, source_id, seq_num, {}, ack_requested, response_requested
+        )
+
+    elif message_type == MSG_IDS[StateLastHevCycleResult]:  # 149
+        result, = struct.unpack("<B", payload_str[:1])
+        payload = {"result": result}
+        message = StateLastHevCycleResult(
+            target_addr, source_id, seq_num, payload, ack_requested, response_requested
+        )
+
+
     elif message_type == MSG_IDS[MultiZoneStateZone]:  # 503
         count = struct.unpack("c", payload_str[0:1])[0]
         count = ord(count)  # 8 bit

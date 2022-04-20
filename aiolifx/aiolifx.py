@@ -4,6 +4,7 @@
 # This application is simply a bridge application for Lifx bulbs.
 #
 # Copyright (c) 2016 François Wautier
+# Copyright (c) 2022 Michael Farrell <micolous+git@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -1213,6 +1214,123 @@ class Light(Device):
             self.infrared_brightness = infrared_brightness
         elif resp:
             self.infrared_brightness = resp.infrared_brightness
+
+    def get_hev_cycle(self, callb):
+        """Request the state of any running HEV cycle of the device.
+
+        This method only works with LIFX Clean bulbs.
+
+        This method will do nothing unless a call back is passed to it.
+
+        :param callb: Callable to be used when the response is received.
+        :type callb: callable
+        :returns: None
+        :rtype: None
+        """
+        self.req_with_resp(GetHevCycle, StateHevCycle, callb=callb)
+
+    def set_hev_cycle(self, enable=True, duration=0, callb=None, rapid=False):
+        """Immediately starts a HEV cycle on the device.
+
+        This method only works with LIFX Clean bulbs.
+
+        This method will send a SetHevCycle message to the device, and request
+        callb be executed when an ACK is received.
+
+        :param enable: If True, start the HEV cycle, otherwise abort.
+        :type enable: bool
+        :param duration: The duration, in seconds, of the HEV cycle. If 0,
+                         use the default configuration on the bulb.
+        :type duration: int
+        :param callb: Callable to be used when the response is received.
+        :type callb: callable
+        :param rapid: Whether to ask for ack (False) or not (True). Default False
+        :type rapid: bool
+        :returns: None
+        :rtype: None
+        """
+        if rapid:
+            self.fire_and_forget(
+                SetHevCycle,
+                {"enable": int(enable), "duration": duration},
+                num_repeats=1,
+            )
+            if callb:
+                callb(self, None)
+        else:
+            self.req_with_resp(
+                SetHevCycle,
+                StateHevCycle,
+                {"enable": int(enable), "duration": duration},
+                callb=callb,
+            )
+
+    def get_hev_configuration(self, callb):
+        """Requests the default HEV configuration of the device.
+
+        This method only works with LIFX Clean bulbs.
+
+        This method will do nothing unless a call back is passed to it.
+
+        :param callb: Callable to be used when the response is received.
+        :type callb: callable
+        :returns: None
+        :rtype: None
+        """
+        self.req_with_resp(
+            GetHevCycleConfiguration, StateHevCycleConfiguration, callb=callb)
+
+    def set_hev_configuration(self, indication, duration, callb=None, rapid=False):
+        """Sets the default HEV configuration of the device.
+
+        This method only works with LIFX Clean bulbs.
+
+        This method will send a SetHevCycleConfiguration message to the device,
+        and request callb be executed when an ACK is received.
+
+        :param indication: If True, show a short flashing indication when the
+                           HEV cycle finishes.
+        :type indication: bool
+        :param duration: The duration, in seconds, of the HEV cycle.
+        :type duration: int
+        :param callb: Callable to be used when the response is received.
+        :type callb: callable
+        :param rapid: Whether to ask for ack (False) or not (True). Default False
+        :type rapid: bool
+        :returns: None
+        :rtype: None
+        """
+        if rapid:
+            self.fire_and_forget(
+                SetHevCycleConfiguration,
+                {"indication": int(indication), "duration": duration},
+                num_repeats=1,
+            )
+            if callb:
+                callb(self, None)
+        else:
+            self.req_with_resp(
+                SetHevCycleConfiguration,
+                StateHevCycleConfiguration,
+                {"indication": int(indication), "duration": duration},
+                callb=callb,
+            )
+
+    # Get last HEV cycle result
+    def get_last_hev_cycle_result(self, callb=None):
+        """Requests the result of the last HEV cycle of the device.
+
+        This method only works with LIFX Clean bulbs.
+
+        This method will do nothing unless a call back is passed to it.
+
+        :param callb: Callable to be used when the response is received.
+        :type callb: callable
+        :returns: None
+        :rtype: None
+        """
+        self.req_with_resp(
+            GetLastHevCycleResult, StateLastHevCycleResult, callb=callb)
 
     def get_accesspoint(self, callb=None):
         """Convenience method to request the access point available
