@@ -1227,7 +1227,8 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        self.req_with_resp(GetHevCycle, StateHevCycle, callb=callb)
+        if hasattr(features_map[self.product], "hev"):
+            self.req_with_resp(GetHevCycle, StateHevCycle, callb=callb)
 
     def set_hev_cycle(self, enable=True, duration=0, callb=None, rapid=False):
         """Immediately starts a HEV cycle on the device.
@@ -1249,21 +1250,22 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if rapid:
-            self.fire_and_forget(
-                SetHevCycle,
-                {"enable": int(enable), "duration": duration},
-                num_repeats=1,
-            )
-            if callb:
-                callb(self, None)
-        else:
-            self.req_with_resp(
-                SetHevCycle,
-                StateHevCycle,
-                {"enable": int(enable), "duration": duration},
-                callb=callb,
-            )
+        if hasattr(features_map[self.product], "hev"):
+            if rapid:
+                self.fire_and_forget(
+                    SetHevCycle,
+                    {"enable": int(enable), "duration": duration},
+                    num_repeats=1,
+                )
+                if callb:
+                    callb(self, None)
+            else:
+                self.req_with_resp(
+                    SetHevCycle,
+                    StateHevCycle,
+                    {"enable": int(enable), "duration": duration},
+                    callb=callb,
+                )
 
     def get_hev_configuration(self, callb):
         """Requests the default HEV configuration of the device.
@@ -1277,8 +1279,10 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        self.req_with_resp(
-            GetHevCycleConfiguration, StateHevCycleConfiguration, callb=callb)
+        if hasattr(features_map[self.product], "hev"):
+            self.req_with_resp(
+                GetHevCycleConfiguration, StateHevCycleConfiguration, callb=callb
+            )
 
     def set_hev_configuration(self, indication, duration, callb=None, rapid=False):
         """Sets the default HEV configuration of the device.
@@ -1300,21 +1304,22 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if rapid:
-            self.fire_and_forget(
-                SetHevCycleConfiguration,
-                {"indication": int(indication), "duration": duration},
-                num_repeats=1,
-            )
-            if callb:
-                callb(self, None)
-        else:
-            self.req_with_resp(
-                SetHevCycleConfiguration,
-                StateHevCycleConfiguration,
-                {"indication": int(indication), "duration": duration},
-                callb=callb,
-            )
+        if hasattr(features_map[self.product], "hev"):
+            if rapid:
+                self.fire_and_forget(
+                    SetHevCycleConfiguration,
+                    {"indication": int(indication), "duration": duration},
+                    num_repeats=1,
+                )
+                if callb:
+                    callb(self, None)
+            else:
+                self.req_with_resp(
+                    SetHevCycleConfiguration,
+                    StateHevCycleConfiguration,
+                    {"indication": int(indication), "duration": duration},
+                    callb=callb,
+                )
 
     # Get last HEV cycle result
     def get_last_hev_cycle_result(self, callb=None):
@@ -1329,8 +1334,10 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        self.req_with_resp(
-            GetLastHevCycleResult, StateLastHevCycleResult, callb=callb)
+        if hasattr(features_map[self.product], "hev"):
+            self.req_with_resp(
+                GetLastHevCycleResult, StateLastHevCycleResult, callb=callb
+            )
 
     def get_accesspoint(self, callb=None):
         """Convenience method to request the access point available
