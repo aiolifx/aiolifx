@@ -1227,7 +1227,7 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if hasattr(features_map[self.product], "hev"):
+        if "hev" in features_map[self.product]:
             self.req_with_resp(GetHevCycle, StateHevCycle, callb=callb)
 
     def set_hev_cycle(self, enable=True, duration=0, callb=None, rapid=False):
@@ -1250,7 +1250,7 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if hasattr(features_map[self.product], "hev"):
+        if "hev" in features_map[self.product]:
             if rapid:
                 self.fire_and_forget(
                     SetHevCycle,
@@ -1279,7 +1279,7 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if hasattr(features_map[self.product], "hev"):
+        if "hev" in features_map[self.product]:
             self.req_with_resp(
                 GetHevCycleConfiguration, StateHevCycleConfiguration, callb=callb
             )
@@ -1304,7 +1304,7 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if hasattr(features_map[self.product], "hev"):
+        if "hev" in features_map[self.product]:
             if rapid:
                 self.fire_and_forget(
                     SetHevCycleConfiguration,
@@ -1334,7 +1334,7 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if hasattr(features_map[self.product], "hev"):
+        if "hev" in features_map[self.product]:
             self.req_with_resp(
                 GetLastHevCycleResult, StateLastHevCycleResult, callb=callb
             )
