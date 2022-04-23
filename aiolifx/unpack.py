@@ -372,12 +372,11 @@ def unpack_lifx_message(packed_message):
         )
 
     elif message_type == MSG_IDS[StateLastHevCycleResult]:  # 149
-        result, = struct.unpack("<B", payload_str[:1])
+        (result,) = struct.unpack("<B", payload_str[:1])
         payload = {"result": result}
         message = StateLastHevCycleResult(
             target_addr, source_id, seq_num, payload, ack_requested, response_requested
         )
-
 
     elif message_type == MSG_IDS[MultiZoneStateZone]:  # 503
         count = struct.unpack("c", payload_str[0:1])[0]

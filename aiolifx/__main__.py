@@ -186,10 +186,12 @@ def readin():
                             callb=lambda _, r: print(
                                 f"\nHEV: duration={r.duration}, "
                                 f"remaining={r.remaining}, "
-                                f"last_power={r.last_power}"))
+                                f"last_power={r.last_power}"
+                            )
+                        )
                         MyBulbs.boi.get_last_hev_cycle_result(
-                            callb=lambda _, r: print(
-                                f"\nHEV result: {r.result_str}"))
+                            callb=lambda _, r: print(f"\nHEV result: {r.result_str}")
+                        )
 
                     elif len(lov) == 2:
                         duration = int(lov[1])
@@ -205,7 +207,9 @@ def readin():
                             callb=lambda _, r: print(
                                 f"\nHEV: duration={r.duration}, "
                                 f"remaining={r.remaining}, "
-                                f"last_power={r.last_power}"))
+                                f"last_power={r.last_power}"
+                            ),
+                        )
                     else:
                         print("Error: maximum 1 argument for HEV cycle")
                     MyBulbs.boi = None
@@ -217,20 +221,26 @@ def readin():
                         MyBulbs.boi.get_hev_configuration(
                             callb=lambda _, r: print(
                                 f"\nHEV: indication={r.indication}, "
-                                f"duration={r.duration}"))
+                                f"duration={r.duration}"
+                            )
+                        )
 
                     elif len(lov) == 3:
                         indication = bool(int(lov[1]))
                         duration = int(lov[2])
-                        print(f"Configuring default HEV cycle with "
-                              f"{'' if indication else 'no '}indication for "
-                              f"{duration} second(s)")
+                        print(
+                            f"Configuring default HEV cycle with "
+                            f"{'' if indication else 'no '}indication for "
+                            f"{duration} second(s)"
+                        )
                         MyBulbs.boi.set_hev_configuration(
                             indication=indication,
                             duration=duration,
                             callb=lambda _, r: print(
                                 f"\nHEV: indication={r.indication}, "
-                                f"duration={r.duration}"))
+                                f"duration={r.duration}"
+                            ),
+                        )
                     else:
                         print("Error: 0 or 2 arguments for HEV config")
                     MyBulbs.boi = None

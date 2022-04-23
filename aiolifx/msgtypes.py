@@ -1313,7 +1313,8 @@ class StateLastHevCycleResult(Message):
 
     @property
     def result_str(self):
-        return LAST_HEV_CYCLE_RESULT.get(self.result, 'UNKNOWN')
+        return LAST_HEV_CYCLE_RESULT.get(self.result, "UNKNOWN")
+
 
 ##### MULTIZONE MESSAGES #####
 
@@ -1521,6 +1522,7 @@ LAST_HEV_CYCLE_RESULT = {
     5: "INTERRUPTED_BY_CLOUD",
     255: "NONE",
 }
+
 
 def str_map(key):
     string_representation = "Unknown"
