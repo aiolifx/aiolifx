@@ -114,7 +114,7 @@ class Device(aio.DatagramProtocol):
         self.seq = 0
         # Key is the message sequence, value is (Response, Event, callb )
         self.message = {}
-        self.source_id = random.randint(0, (2 ** 32) - 1)
+        self.source_id = random.randint(0, (2**32) - 1)
         # Default callback for unexpected messages
         self.default_callb = None
         # And the rest
@@ -850,6 +850,9 @@ class Light(Device):
         self.color = None
         self.color_zones = None
         self.infrared_brightness = None
+        self.hev_cycle = None
+        self.hev_cycle_configuration = None
+        self.last_hev_cycle_result = None
 
     def get_power(self, callb=None):
         """Convenience method to request the power status from the device
@@ -1215,7 +1218,7 @@ class Light(Device):
         elif resp:
             self.infrared_brightness = resp.infrared_brightness
 
-    def get_hev_cycle(self, callb):
+    def get_hev_cycle(self, callb=None):
         """Request the state of any running HEV cycle of the device.
 
         This method only works with LIFX Clean bulbs.
@@ -1227,8 +1230,17 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if "hev" in features_map[self.product]:
+        if features_map[self.product]["hev"] is True:
             self.req_with_resp(GetHevCycle, StateHevCycle, callb=callb)
+
+    def resp_set_hevcycle(self, resp):
+        """Default callback for get_hev_cycle/set_hev_cycle"""
+        if resp:
+            self.hev_cycle = {
+                "duration": resp.duration,
+                "remaining": resp.remaining,
+                "last_power": resp.last_power,
+            }
 
     def set_hev_cycle(self, enable=True, duration=0, callb=None, rapid=False):
         """Immediately starts a HEV cycle on the device.
@@ -1250,7 +1262,7 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if "hev" in features_map[self.product]:
+        if features_map[self.product]["hev"] is True:
             if rapid:
                 self.fire_and_forget(
                     SetHevCycle,
@@ -1267,7 +1279,7 @@ class Light(Device):
                     callb=callb,
                 )
 
-    def get_hev_configuration(self, callb):
+    def get_hev_configuration(self, callb=None):
         """Requests the default HEV configuration of the device.
 
         This method only works with LIFX Clean bulbs.
@@ -1283,6 +1295,14 @@ class Light(Device):
             self.req_with_resp(
                 GetHevCycleConfiguration, StateHevCycleConfiguration, callb=callb
             )
+
+    def resp_set_hevcycleconfiguration(self, resp):
+        """Default callback for get_hev_cycle_configuration/set_hev_cycle_configuration"""
+        if resp:
+            self.hev_cycle_configuration = {
+                "duration": resp.duration,
+                "indication": resp.indication,
+            }
 
     def set_hev_configuration(self, indication, duration, callb=None, rapid=False):
         """Sets the default HEV configuration of the device.
@@ -1334,10 +1354,14 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if "hev" in features_map[self.product]:
+        if features_map[self.product]["hev"] is True:
             self.req_with_resp(
                 GetLastHevCycleResult, StateLastHevCycleResult, callb=callb
             )
+
+    def resp_set_lasthevcycleresult(self, resp):
+        if resp:
+            self.last_hev_cycle_result = LAST_HEV_CYCLE_RESULT.get(resp.result)
 
     def get_accesspoint(self, callb=None):
         """Convenience method to request the access point available
@@ -1401,7 +1425,7 @@ class LifxDiscovery(aio.DatagramProtocol):
         self.transport = None
         self.loop = loop
         self.task = None
-        self.source_id = random.randint(0, (2 ** 32) - 1)
+        self.source_id = random.randint(0, (2**32) - 1)
         self.ipv6prefix = ipv6prefix
         self.discovery_interval = discovery_interval
         self.discovery_step = discovery_step

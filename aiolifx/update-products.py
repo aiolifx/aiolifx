@@ -11,20 +11,33 @@ json = json.load(
 product_map = {}
 features_map = {}
 
+defaults = json[0]["defaults"]
+
 for product in json[0]["products"]:
     product_id = product["pid"]
 
     product_map[product_id] = product["name"]
 
-    features = product["features"]
+    features = {}
+    for feature in defaults:
+        if feature in product["features"]:
+            features[feature] = product["features"][feature]
+        else:
+            features[feature] = defaults[feature]
 
     for upgrade in product["upgrades"]:
         features.update(upgrade["features"])
 
-    if "temperature_range" in features:
+    if features["temperature_range"] is not None:
         features["min_kelvin"] = features["temperature_range"][0]
         features["max_kelvin"] = features["temperature_range"][1]
         del features["temperature_range"]
+
+    if "min_ext_mz_firmware" in product["features"]:
+        features["min_ext_mz_firmware"] = product["features"]["min_ext_mz_firmware"]
+
+    if "min_ext_mz_firmware_components" in product["features"]:
+        features["min_ext_mz_firmware_components"] = product["features"]["min_ext_mz_firmware_components"]
 
     features_map[product_id] = features
 
