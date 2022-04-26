@@ -37,7 +37,9 @@ for product in json[0]["products"]:
         features["min_ext_mz_firmware"] = product["features"]["min_ext_mz_firmware"]
 
     if "min_ext_mz_firmware_components" in product["features"]:
-        features["min_ext_mz_firmware_components"] = product["features"]["min_ext_mz_firmware_components"]
+        features["min_ext_mz_firmware_components"] = product["features"][
+            "min_ext_mz_firmware_components"
+        ]
 
     features_map[product_id] = features
 
