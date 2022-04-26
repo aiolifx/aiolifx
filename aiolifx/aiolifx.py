@@ -1291,7 +1291,7 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if "hev" in features_map[self.product]:
+        if features_map[self.product]["hev"] is True:
             self.req_with_resp(
                 GetHevCycleConfiguration, StateHevCycleConfiguration, callb=callb
             )
@@ -1324,7 +1324,7 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if "hev" in features_map[self.product]:
+        if features_map[self.product]["hev"] is True:
             if rapid:
                 self.fire_and_forget(
                     SetHevCycleConfiguration,
