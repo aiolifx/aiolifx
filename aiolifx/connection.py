@@ -39,7 +39,7 @@ class LIFXConnection:
     async def async_setup(self):
         """Ensure we are connected."""
         loop = asyncio.get_running_loop()
-        self.transport, self.protocol = await loop.create_datagram_endpoint(
+        self.transport, self.device = await loop.create_datagram_endpoint(
             lambda: Light(loop, self.mac, self.host),
             remote_addr=(self.host, UDP_BROADCAST_PORT),
         )
