@@ -3,29 +3,6 @@ import asyncio
 from .aiolifx import UDP_BROADCAST_PORT, Light
 
 
-class AwaitAioLIFX:
-    """Wait for an aiolifx callback and return the message."""
-
-    def __init__(self):
-        """Initialize the wrapper."""
-        self.message = None
-        self.event = asyncio.Event()
-
-    def callback(self, bulb, message):
-        """Handle responses."""
-        self.message = message
-        self.event.set()
-
-    async def wait(self, method):
-        """Call an aiolifx method and wait for its response."""
-        self.message = None
-        self.event.clear()
-        method(callb=self.callback)
-
-        await self.event.wait()
-        return self.message
-
-
 class LIFXConnection:
     """Manage a connection to a LIFX device."""
 
