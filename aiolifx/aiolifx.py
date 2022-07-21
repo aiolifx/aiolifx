@@ -707,6 +707,19 @@ class Device(aio.DatagramProtocol):
         response = self.req_with_resp(GetInfo, StateInfo, callb=callb)
         return None
 
+    def set_reboot(self):
+        """Convenience method to reboot the device
+
+        This will send a magic reboot packet to the device which has the same effect
+        as physically turning the device off and on again. Its uptime value will be
+        reset and it will be rediscovered.
+
+        There are no parameters or callbacks as the device immediately restarts with
+        any response so it just returns True to indicate the packet was sent.
+        """
+        return self.fire_and_forget(SetReboot)
+
+
     def get_version(self, callb=None):
         """Convenience method to request the version from the device
 

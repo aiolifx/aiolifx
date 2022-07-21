@@ -669,6 +669,27 @@ class StateGroup(Message):
         return payload
 
 
+class SetReboot(Message):
+    def __init__(
+        self,
+        target_addr: str,
+        source_id: str,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ) -> None:
+        """Initialise a SetReboot packet."""
+        super(SetReboot, self).__init__(
+            MSG_IDS[SetReboot],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+
 class Acknowledgement(Message):
     def __init__(
         self,
@@ -1475,6 +1496,7 @@ MSG_IDS = {
     StateVersion: 33,
     GetInfo: 34,
     StateInfo: 35,
+    SetReboot: 38,
     Acknowledgement: 45,
     GetLocation: 48,
     StateLocation: 50,
