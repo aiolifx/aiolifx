@@ -25,6 +25,7 @@
 import sys
 import asyncio as aio
 import aiolifx as alix
+from time import sleep
 from functools import partial
 
 # Simple bulb control frpm console
@@ -237,6 +238,13 @@ def readin():
                     else:
                         print("Error: 0 or 2 arguments for HEV config")
                     MyBulbs.boi = None
+                elif int(lov[0]) == 99:
+                    # Reboot bulb
+                    print("Rebooting bulb in 3 seconds. If the bulb is on, it will flicker off and back on as it reboots.")
+                    print("Hit CTRL-C within 3 seconds to to quit without rebooting the bulb.")
+                    sleep(3)
+                    MyBulbs.boi.set_reboot()
+                    print("Bulb rebooted.")
             # except:
             # print ("\nError: Selection must be a number.\n")
         else:
@@ -262,6 +270,7 @@ def readin():
         print("\t[8]\tPulse")
         print("\t[9]\tHEV cycle (duration, or -1 to stop)")
         print("\t[10]\tHEV configuration (indication, duration)")
+        print("\t[99]\tReboot the bulb (indicated by a reboot blink)")
         print("")
         print("\t[0]\tBack to bulb selection")
     else:
