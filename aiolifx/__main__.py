@@ -143,22 +143,6 @@ def readin():
                     elif int(lov[0]) == 8:
                         if len(lov) > 3:
                             try:
-                                print(
-                                    "Sending {}".format(
-                                        [
-                                            int(
-                                                round((float(lov[1]) * 65535.0) / 360.0)
-                                            ),
-                                            int(
-                                                round((float(lov[2]) * 65535.0) / 100.0)
-                                            ),
-                                            int(
-                                                round((float(lov[3]) * 65535.0) / 100.0)
-                                            ),
-                                            3500,
-                                        ]
-                                    )
-                                )
                                 MyBulbs.boi.set_waveform(
                                     {
                                         "color": [
@@ -177,7 +161,7 @@ def readin():
                                         "period": 100,
                                         "cycles": 30,
                                         "skew_ratio": 0,
-                                        "waveform": 0,
+                                        "waveform": 3,
                                     }
                                 )
                                 MyBulbs.boi = None
@@ -303,9 +287,28 @@ def readin():
     print("Your choice: ", end="", flush=True)
 
 
-def main():
-    global opts
+async def amain():
     global MyBulbs
+
+    # Avoid any asyncio error message
+    await aio.sleep(0)
+
+    MyBulbs = bulbs()
+    loop = aio.get_event_loop()
+    discovery = alix.LifxDiscovery(loop, MyBulbs)
+    try:
+        loop.add_reader(sys.stdin, readin)
+        discovery.start()
+        print('Hit "Enter" to start')
+        print("Use Ctrl-C to quit")
+        await aio.Event().wait()
+    finally:
+        discovery.cleanup()
+        loop.remove_reader(sys.stdin)
+
+
+if __name__ == "__main__":
+    global opts
 
     parser = argparse.ArgumentParser(
         description="Track and interact with Lifx light bulbs."
@@ -327,23 +330,9 @@ def main():
         opts = parser.parse_args()
     except Exception as e:
         parser.error("Error: " + str(e))
-
-    MyBulbs = bulbs()
-    loop = aio.get_event_loop()
-    discovery = alix.LifxDiscovery(loop, MyBulbs)
     try:
-        loop.add_reader(sys.stdin, readin)
-        discovery.start()
-        print('Hit "Enter" to start')
-        print("Use Ctrl-C to quit")
-        loop.run_forever()
-    except:
-        pass
-    finally:
-        discovery.cleanup()
-        loop.remove_reader(sys.stdin)
-        loop.close()
-
-
-if __name__ == "__main__":
-    main()
+        aio.run(amain())
+    except KeyboardInterrupt:
+        print("\nExiting at user's request.")
+    except Exception as e:
+        print(f"Error: {e}")

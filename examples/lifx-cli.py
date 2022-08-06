@@ -240,8 +240,12 @@ def readin():
                     MyBulbs.boi = None
                 elif int(lov[0]) == 99:
                     # Reboot bulb
-                    print("Rebooting bulb in 3 seconds. If the bulb is on, it will flicker off and back on as it reboots.")
-                    print("Hit CTRL-C within 3 seconds to to quit without rebooting the bulb.")
+                    print(
+                        "Rebooting bulb in 3 seconds. If the bulb is on, it will flicker off and back on as it reboots."
+                    )
+                    print(
+                        "Hit CTRL-C within 3 seconds to to quit without rebooting the bulb."
+                    )
                     sleep(3)
                     MyBulbs.boi.set_reboot()
                     print("Bulb rebooted.")

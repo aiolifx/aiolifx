@@ -114,7 +114,7 @@ class Device(aio.DatagramProtocol):
         self.seq = 0
         # Key is the message sequence, value is (Response, Event, callb )
         self.message = {}
-        self.source_id = random.randint(0, (2**32) - 1)
+        self.source_id = random.randint(0, (2 ** 32) - 1)
         # Default callback for unexpected messages
         self.default_callb = None
         # And the rest
@@ -718,7 +718,6 @@ class Device(aio.DatagramProtocol):
         any response so it just returns True to indicate the packet was sent.
         """
         return self.fire_and_forget(SetReboot)
-
 
     def get_version(self, callb=None):
         """Convenience method to request the version from the device
@@ -1438,7 +1437,7 @@ class LifxDiscovery(aio.DatagramProtocol):
         self.transport = None
         self.loop = loop
         self.task = None
-        self.source_id = random.randint(0, (2**32) - 1)
+        self.source_id = random.randint(0, (2 ** 32) - 1)
         self.ipv6prefix = ipv6prefix
         self.discovery_interval = discovery_interval
         self.discovery_step = discovery_step
