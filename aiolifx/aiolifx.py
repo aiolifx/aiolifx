@@ -1200,7 +1200,7 @@ class Light(Device):
             :rtype: None
         """
         mypartial = partial(
-            self.resp_set_infrared, infrared_brightness=infrared_brightness
+            self.resp_set_lightinfrared, infrared_brightness=infrared_brightness
         )
         if callb:
             mycallb = lambda x, y: (mypartial(y), callb(x, y))
@@ -1212,7 +1212,7 @@ class Light(Device):
                 {"infrared_brightness": infrared_brightness},
                 num_repeats=1,
             )
-            self.resp_set_infrared(None, infrared_brightness=infrared_brightness)
+            self.resp_set_lightinfrared(None, infrared_brightness=infrared_brightness)
             if callb:
                 callb(self, None)
         else:
@@ -1222,8 +1222,8 @@ class Light(Device):
                 callb=mycallb,
             )
 
-    # Here infrared because StateInfrared message will give infrared
-    def resp_set_infrared(self, resp, infrared_brightness=None):
+    # Here lightinfrared because LightStateInfrared message will give lightinfrared
+    def resp_set_lightinfrared(self, resp, infrared_brightness=None):
         """Default callback for set_infrared/get_infrared"""
         if infrared_brightness is not None:
             self.infrared_brightness = infrared_brightness
