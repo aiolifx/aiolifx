@@ -307,7 +307,7 @@ async def amain():
         loop.remove_reader(sys.stdin)
 
 
-if __name__ == "__main__":
+def main():
     global opts
 
     parser = argparse.ArgumentParser(
@@ -336,3 +336,7 @@ if __name__ == "__main__":
         print("\nExiting at user's request.")
     except Exception as e:
         print(f"Error: {e}")
+
+
+if __name__ == "__main__":
+    main()
