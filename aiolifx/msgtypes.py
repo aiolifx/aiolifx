@@ -8,6 +8,8 @@
 
 from .message import Message, BROADCAST_MAC, HEADER_SIZE_BYTES, little_endian
 import bitstring
+from enum import Enum
+import random
 import sys
 import struct
 
@@ -1475,6 +1477,145 @@ class MultiZoneGetColorZones(Message):
         return payload
 
 
+class MultiZoneGetMultiZoneEffect(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload={},
+        ack_requested=False,
+        response_requested=False,
+    ):
+        super(MultiZoneGetMultiZoneEffect, self).__init__(
+            MSG_IDS[MultiZoneGetMultiZoneEffect],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+
+class MultiZoneSetMultiZoneEffect(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.instanceid = random.randrange(1, 1 << 32)
+        self.type = payload["type"]
+        self.speed = payload["speed"]
+        self.duration = payload["duration"]
+        self.direction = payload["direction"]
+        super(MultiZoneSetMultiZoneEffect, self).__init__(
+            MSG_IDS[MultiZoneSetMultiZoneEffect],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        instanceid = little_endian(bitstring.pack("uint:32", self.instanceid))
+        type = little_endian(bitstring.pack("uint:8", self.type))
+        reserved6 = little_endian(bitstring.pack("int:16", 2))
+        speed = little_endian(bitstring.pack("uint:32", self.speed))
+        duration = little_endian(bitstring.pack("uint:64", self.duration))
+        reserved7 = little_endian(bitstring.pack("int:32", 4))
+        reserved8 = little_endian(bitstring.pack("int:32", 4))
+        parameter1 = little_endian(bitstring.pack("uint:32", 4))
+        direction = little_endian(bitstring.pack("uint:32", self.direction))
+        parameter3 = little_endian(bitstring.pack("uint:32", 4))
+
+        payload = (
+            instanceid
+            + type
+            + reserved6
+            + speed
+            + duration
+            + reserved7
+            + reserved8
+            + parameter1
+            + direction
+            + parameter3 * 6
+        )
+        return payload
+
+
+class MultiZoneStateMultiZoneEffect(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.instanceid = payload["instanceid"]
+        self.effect = payload["effect"]
+        self.speed = payload["speed"]
+        self.duration = payload["duration"]
+        self.direction = payload["direction"]
+
+        super(MultiZoneStateMultiZoneEffect, self).__init__(
+            MSG_IDS[MultiZoneStateMultiZoneEffect],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        self.payload_fields.append("Instance ID", self.instanceid)
+        self.payload_fields.append("Effect", self.effect)
+        self.payload_fields.append("Speed", self.speed)
+        self.payload_fields.append("Duration", self.duration)
+        self.payload_fields.append("Direction", self.direction)
+        instanceid = little_endian(bitstring.pack("uint:32", self.instanceid))
+        effect = little_endian(bitstring.pack("uint:8", self.effect))
+        speed = little_endian(bitstring.pack("uint:32", self.speed))
+        duration = little_endian(bitstring.pack("uint:64", self.duration))
+        parameter1 = b"".join(little_endian(bitstring.pack("uint:8", 8)))
+        direction = b"".join(
+            little_endian(bitstring.pack("uint:8", c)) for c in self.direction
+        )
+        direction_padding = b"".join(
+            little_endian(bitstring.pack("uint:8", 0))
+            for i in range(8 - len(self.direction))
+        )
+        direction += direction_padding
+        parameter3 = b"".join(little_endian(bitstring.pack("uint:8", 8)))
+        parameter4 = b"".join(little_endian(bitstring.pack("uint:8", 8)))
+        payload = (
+            instanceid
+            + effect
+            + speed
+            + duration
+            + parameter1
+            + direction
+            + parameter3
+            + parameter4
+        )
+
+        return payload
+
+    @property
+    def effect_str(self):
+        return MultiZoneEffectType(self.effect).name.upper()
+
+    @property
+    def direction_str(self):
+        return MultiZoneDirection(self.direction).name.lower()
+
+
 MSG_IDS = {
     GetService: 2,
     StateService: 3,
@@ -1527,6 +1668,9 @@ MSG_IDS = {
     MultiZoneGetColorZones: 502,
     MultiZoneStateZone: 503,
     MultiZoneStateMultiZone: 506,
+    MultiZoneGetMultiZoneEffect: 507,
+    MultiZoneSetMultiZoneEffect: 508,
+    MultiZoneStateMultiZoneEffect: 509,
 }
 
 SERVICE_IDS = {1: "UDP", 2: "reserved", 3: "reserved", 4: "reserved"}
@@ -1544,6 +1688,20 @@ LAST_HEV_CYCLE_RESULT = {
     5: "INTERRUPTED_BY_CLOUD",
     255: "NONE",
 }
+
+
+class MultiZoneEffectType(Enum):
+    OFF = 0
+    MOVE = 1
+    RESERVED1 = 2
+    RESERVED2 = 3
+
+
+class MultiZoneDirection(Enum):
+    RIGHT = 0
+    LEFT = 1
+    BACKWARD = 0
+    FORWARD = 1
 
 
 def str_map(key):
