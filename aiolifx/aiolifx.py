@@ -28,6 +28,7 @@ from .msgtypes import *
 from .products import *
 from .unpack import unpack_lifx_message
 from functools import partial
+from math import floor
 import time, random, datetime, socket, ifaddr
 
 # A couple of constants
@@ -1156,7 +1157,7 @@ class Light(Device):
         elif type(effect) == int:
             typ = effect if effect in [e.value for e in MultiZoneEffectType] else 0
 
-        speed = speed * 1000 if type(speed) == int else 3000
+        speed = floor(speed * 1000) if 0 < speed <= 60 else 3000
 
         if type(direction) == str:
             direction = MultiZoneDirection[direction.upper()].value
