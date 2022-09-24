@@ -403,6 +403,57 @@ def unpack_lifx_message(packed_message):
             target_addr, source_id, seq_num, payload, ack_requested, response_requested
         )
 
+    elif message_type == MSG_IDS[MultiZoneGetMultiZoneEffect]:  # 507
+        _, effect, _, speed, duration, _, _, _, direction, _, _ = struct.unpack(
+            "<IBHIQIIBBBB", payload_str[:31]
+        )
+        payload = {
+            "effect": effect,
+            "speed": speed,
+            "duration": duration,
+            "direction": direction,
+        }
+        message = MultiZoneGetMultiZoneEffect(
+            target_addr, source_id, seq_num, payload, ack_requested, response_requested
+        )
+
+    elif message_type == MSG_IDS[MultiZoneSetMultiZoneEffect]:  # 508
+        _, effect, _, speed, duration, _, _, _, direction, _, _ = struct.unpack(
+            "<IBHIQIIBBBB", payload_str[:31]
+        )
+        payload = {
+            "effect": effect,
+            "speed": speed,
+            "duration": duration,
+            "direction": direction,
+        }
+        message = MultiZoneSetMultiZoneEffect(
+            target_addr, source_id, seq_num, payload, ack_requested, response_requested
+        )
+
+    elif message_type == MSG_IDS[MultiZoneStateMultiZoneEffect]:  # 509
+
+        (
+            instanceid,
+            effect,
+            _,
+            speed,
+            duration,
+            _,
+            _,
+        ) = struct.unpack("<IBHIQII", payload_str[:27])
+        direction = struct.unpack("I", payload_str[31:35])[0]
+        payload = {
+            "instanceid": instanceid,
+            "effect": effect,
+            "speed": speed,
+            "duration": duration,
+            "direction": direction,
+        }
+        message = MultiZoneStateMultiZoneEffect(
+            target_addr, source_id, seq_num, payload, ack_requested, response_requested
+        )
+
     else:
         message = Message(
             message_type,

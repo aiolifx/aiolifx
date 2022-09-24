@@ -28,6 +28,7 @@ from .msgtypes import *
 from .products import *
 from .unpack import unpack_lifx_message
 from functools import partial
+from math import floor
 import time, random, datetime, socket, ifaddr
 
 # A couple of constants
@@ -865,6 +866,7 @@ class Light(Device):
         self.hev_cycle = None
         self.hev_cycle_configuration = None
         self.last_hev_cycle_result = None
+        self.effect = {"effect": None}
 
     def get_power(self, callb=None):
         """Convenience method to request the power status from the device
@@ -1108,6 +1110,90 @@ class Light(Device):
             except:
                 # I guess this should not happen but...
                 pass
+
+    def get_multizone_effect(self, callb=None):
+        """Convenience method to get the currently running firmware effect on the device.
+
+        The value returned is the previously known state of the device. Use a callback
+        to get the current state of the device.
+
+        :param callb: Callable to be used when the response is received. If not set,
+                      self.resp_set_multizonemultizoneeffect will be used.
+        :type callb: callable
+        :returns: current effect details as a dictionary
+        :rtype: dict
+        """
+        response = self.req_with_resp(
+            MultiZoneGetMultiZoneEffect, MultiZoneStateMultiZoneEffect, callb=callb
+        )
+        return self.effect
+
+    def set_multizone_effect(
+        self, effect=0, speed=3, direction=0, callb=None, rapid=False
+    ):
+        """Convenience method to start or stop the Move firmware effect on multizone devices.
+
+        Compatible devices include LIFX Z, Lightstrip and Beam and can be identified by
+        checking if features_map[device.product]['multizone'] is True. Multizone devices
+        only have one firmware effect named "MOVE". The effect can be started and stopped
+        without the device being powered on. The effect will not be visible if the
+        device is a single uniform color.
+
+        Sending a set_power(0) to the device while the effect is running does not stop the effect.
+        Physically powering off the device will stop the effect. And the device.
+
+
+        :param effect: 0/Off, 1/Move
+        :type effect: int
+        :param speed: time in seconds for one cycle of the effect to travel the length of the device
+        :type speed: float
+        :param direction: 0/Right, 1/Left
+        :type direction: int
+        """
+
+        typ = effect
+        if type(effect) == str:
+            typ = MultiZoneEffectType[effect.upper()].value
+        elif type(effect) == int:
+            typ = effect if effect in [e.value for e in MultiZoneEffectType] else 0
+
+        speed = floor(speed * 1000) if 0 < speed <= 60 else 3000
+
+        if type(direction) == str:
+            direction = MultiZoneDirection[direction.upper()].value
+        elif type(direction) == int:
+            direction = (
+                direction if direction in [d.value for d in MultiZoneDirection] else 0
+            )
+
+        payload = {
+            "type": typ,
+            "speed": speed,
+            "duration": 0,
+            "direction": direction,
+        }
+
+        if rapid:
+            self.fire_and_forget(MultiZoneSetMultiZoneEffect, payload)
+        else:
+            self.req_with_ack(MultiZoneSetMultiZoneEffect, payload, callb=callb)
+
+    def resp_set_multizonemultizoneeffect(self, resp):
+        """Default callback for get_multizone_effect"""
+
+        if resp:
+            self.effect = {"effect": MultiZoneEffectType(resp.effect).name.upper()}
+
+            if resp.effect != 0:
+                self.effect["speed"] = resp.speed / 1000
+                self.effect["duration"] = (
+                    0.0
+                    if resp.duration == 0
+                    else float(f"{self.effect['duration'] / 1000000000:4f}")
+                )
+                self.effect["direction"] = MultiZoneDirection(
+                    resp.direction
+                ).name.capitalize()
 
     # value should be a dictionary with the the following keys: transient, color, period, cycles, skew_ratio, waveform
     def set_waveform(self, value, callb=None, rapid=False):
