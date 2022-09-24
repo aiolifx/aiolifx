@@ -26,6 +26,7 @@ import sys
 import asyncio as aio
 import aiolifx as alix
 from functools import partial
+from time import sleep
 import argparse
 
 UDP_BROADCAST_PORT = 56700
@@ -174,82 +175,161 @@ def readin():
                                 "Error: For pulse you must indicate hue (0-360), saturation (0-100) and brightness (0-100))\n"
                             )
                     elif int(lov[0]) == 9:
-                        # HEV cycle
-                        if len(lov) == 1:
-                            # Get current state
-                            print("Getting current HEV state")
-                            MyBulbs.boi.get_hev_cycle(
-                                callb=lambda _, r: print(
-                                    f"\nHEV: duration={r.duration}, "
-                                    f"remaining={r.remaining}, "
-                                    f"last_power={r.last_power}"
-                                )
-                            )
-                            MyBulbs.boi.get_last_hev_cycle_result(
-                                callb=lambda _, r: print(
-                                    f"\nHEV result: {r.result_str}"
-                                )
-                            )
-
-                        elif len(lov) == 2:
-                            try:
-                                duration = int(lov[1])
-                                enable = duration >= 0
-                                if enable:
-                                    print(f"Running HEV cycle for {duration} second(s)")
-                                else:
-                                    print(f"Aborting HEV cycle")
-                                    duration = 0
-                                MyBulbs.boi.set_hev_cycle(
-                                    enable=enable,
-                                    duration=duration,
+                        if (
+                            alix.aiolifx.features_map[MyBulbs.boi.product]["hev"]
+                            is True
+                        ):
+                            # HEV cycle
+                            if len(lov) == 1:
+                                # Get current state
+                                print("Getting current HEV state")
+                                MyBulbs.boi.get_hev_cycle(
                                     callb=lambda _, r: print(
                                         f"\nHEV: duration={r.duration}, "
                                         f"remaining={r.remaining}, "
                                         f"last_power={r.last_power}"
-                                    ),
+                                    )
                                 )
-                            except:
-                                print("Error: duration must be an integer")
-                        else:
-                            print("Error: maximum 1 argument for HEV cycle")
-                        MyBulbs.boi = None
-                    elif int(lov[0]) == 10:
-                        # HEV cycle configuration
-                        if len(lov) == 1:
-                            # Get current state
-                            print("Getting current HEV configuration")
-                            MyBulbs.boi.get_hev_configuration(
+                                MyBulbs.boi.get_last_hev_cycle_result(
+                                    callb=lambda _, r: print(
+                                        f"\nHEV result: {r.result_str}"
+                                    )
+                                )
+
+                            elif len(lov) == 2:
+                                try:
+                                    duration = int(lov[1])
+                                    enable = duration >= 0
+                                    if enable:
+                                        print(
+                                            f"Running HEV cycle for {duration} second(s)"
+                                        )
+                                    else:
+                                        print(f"Aborting HEV cycle")
+                                        duration = 0
+                                    MyBulbs.boi.set_hev_cycle(
+                                        enable=enable,
+                                        duration=duration,
+                                        callb=lambda _, r: print(
+                                            f"\nHEV: duration={r.duration}, "
+                                            f"remaining={r.remaining}, "
+                                            f"last_power={r.last_power}"
+                                        ),
+                                    )
+                                except:
+                                    print("Error: duration must be an integer")
+                            else:
+                                print("Error: maximum 1 argument for HEV cycle")
+                            MyBulbs.boi = None
+                        elif (
+                            alix.aiolifx.features_map[MyBulbs.boi.product]["multizone"]
+                            is True
+                        ):
+                            # Multizone firmware effect
+                            print(
+                                "Getting current firmware effect state from multizone device"
+                            )
+                            MyBulbs.boi.get_multizone_effect(
                                 callb=lambda _, r: print(
-                                    f"\nHEV: indication={r.indication}, "
-                                    f"duration={r.duration}"
+                                    f"\nCurrent effect={r.effect_str}"
+                                    f"\nSpeed={r.speed/1000 if getattr(r, 'speed', None) is not None else 0}"
+                                    f"\nDuration={r.duration/1000000000 if getattr(r, 'duration', None) is not None else 0:4f}"
+                                    f"\nDirection={r.direction_str}"
                                 )
                             )
+                            MyBulbs.boi = None
 
-                        elif len(lov) == 3:
-                            try:
-                                indication = bool(int(lov[1]))
-                                duration = int(lov[2])
-                                print(
-                                    f"Configuring default HEV cycle with "
-                                    f"{'' if indication else 'no '}indication for "
-                                    f"{duration} second(s)"
-                                )
-                                MyBulbs.boi.set_hev_configuration(
-                                    indication=indication,
-                                    duration=duration,
+                    elif int(lov[0]) == 10:
+                        if (
+                            alix.aiolifx.features_map[MyBulbs.boi.product]["hev"]
+                            is True
+                        ):
+                            # HEV cycle configuration
+                            if len(lov) == 1:
+                                # Get current state
+                                print("Getting current HEV configuration")
+                                MyBulbs.boi.get_hev_configuration(
                                     callb=lambda _, r: print(
                                         f"\nHEV: indication={r.indication}, "
                                         f"duration={r.duration}"
-                                    ),
+                                    )
                                 )
-                            except:
+
+                            elif len(lov) == 3:
+                                try:
+                                    indication = bool(int(lov[1]))
+                                    duration = int(lov[2])
+                                    print(
+                                        f"Configuring default HEV cycle with "
+                                        f"{'' if indication else 'no '}indication for "
+                                        f"{duration} second(s)"
+                                    )
+                                    MyBulbs.boi.set_hev_configuration(
+                                        indication=indication,
+                                        duration=duration,
+                                        callb=lambda _, r: print(
+                                            f"\nHEV: indication={r.indication}, "
+                                            f"duration={r.duration}"
+                                        ),
+                                    )
+                                except:
+                                    print(
+                                        "Error: both indication and duration must be integer."
+                                    )
+                            else:
+                                print("Error: 0 or 2 arguments for HEV config")
+                            MyBulbs.boi = None
+                        elif (
+                            alix.aiolifx.features_map[MyBulbs.boi.product]["multizone"]
+                            is True
+                        ):
+                            can_set = True
+                            if len(lov) == 3:
+                                effect = str(lov[1])
+                                direction = str(lov[2])
+
+                                if effect.lower() not in ["off", "move"]:
+                                    print(
+                                        "Error: effect parameter must be 'off' or 'move'"
+                                    )
+                                    can_set = False
+                                if direction.lower() not in ["left", "right"]:
+                                    print(
+                                        "Error: direction parameter must be 'right' or 'left"
+                                    )
+                                    can_set = False
+
+                                if can_set:
+                                    e = alix.aiolifx.MultiZoneEffectType[
+                                        effect.upper()
+                                    ].value
+                                    d = alix.aiolifx.MultiZoneDirection[
+                                        direction.upper()
+                                    ].value
+                                    MyBulbs.boi.set_multizone_effect(
+                                        effect=e, speed=3, direction=d
+                                    )
+
+                            elif len(lov) == 2:
+                                MyBulbs.boi.set_multizone_effect(effect=0)
+
+                            else:
                                 print(
-                                    "Error: both indication and duration must be integer."
+                                    "Error: need to provide effect and direction parameters."
                                 )
-                        else:
-                            print("Error: 0 or 2 arguments for HEV config")
-                        MyBulbs.boi = None
+
+                            MyBulbs.boi = None
+                    elif int(lov[0]) == 99:
+                        # Reboot bulb
+                        print(
+                            "Rebooting bulb in 3 seconds. If the bulb is on, it will flicker off and back on as it reboots."
+                        )
+                        print(
+                            "Hit CTRL-C within 3 seconds to to quit without rebooting the bulb."
+                        )
+                        sleep(3)
+                        MyBulbs.boi.set_reboot()
+                        print("Bulb rebooted.")
             except:
                 print("\nError: Selection must be a number.\n")
         else:
@@ -273,8 +353,13 @@ def readin():
         print("\t[6]\tWifi")
         print("\t[7]\tUptime")
         print("\t[8]\tPulse")
-        print("\t[9]\tHEV cycle (Nothing for query, duration or -1 to stop)")
-        print("\t[10]\tHEV configuration (Nothing for query, indication duration)")
+        if alix.aiolifx.features_map[MyBulbs.boi.product]["hev"] is True:
+            print("\t[9]\tHEV cycle (Nothing for query, duration or -1 to stop)")
+            print("\t[10]\tHEV configuration (Nothing for query, indication duration)")
+        if alix.aiolifx.features_map[MyBulbs.boi.product]["multizone"] is True:
+            print("\t[9]\tGet firmware effect status")
+            print("\t[10]\tStart or stop firmware effect ([off/move] [right|left])")
+        print("\t[99]\tReboot the bulb (indicated by a reboot blink)")
         print("")
         print("\t[0]\tBack to bulb selection")
     else:
