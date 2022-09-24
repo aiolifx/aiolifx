@@ -185,7 +185,9 @@ def readin():
                                 )
                             )
                             MyBulbs.boi.get_last_hev_cycle_result(
-                                callb=lambda _, r: print(f"\nHEV result: {r.result_str}")
+                                callb=lambda _, r: print(
+                                    f"\nHEV result: {r.result_str}"
+                                )
                             )
 
                         elif len(lov) == 2:
@@ -208,9 +210,14 @@ def readin():
                         else:
                             print("Error: maximum 1 argument for HEV cycle")
                         MyBulbs.boi = None
-                    elif alix.aiolifx.features_map[MyBulbs.boi.product]["multizone"] is True:
+                    elif (
+                        alix.aiolifx.features_map[MyBulbs.boi.product]["multizone"]
+                        is True
+                    ):
                         # Multizone firmware effect
-                        print("Getting current firmware effect state from multizone device")
+                        print(
+                            "Getting current firmware effect state from multizone device"
+                        )
                         MyBulbs.boi.get_multizone_effect(
                             callb=lambda _, r: print(
                                 f"\nCurrent effect={r.effect_str}"
@@ -253,7 +260,10 @@ def readin():
                         else:
                             print("Error: 0 or 2 arguments for HEV config")
                         MyBulbs.boi = None
-                    elif alix.aiolifx.features_map[MyBulbs.boi.product]["multizone"] is True:
+                    elif (
+                        alix.aiolifx.features_map[MyBulbs.boi.product]["multizone"]
+                        is True
+                    ):
                         can_set = True
                         if len(lov) == 3:
                             effect = str(lov[1])
@@ -263,22 +273,31 @@ def readin():
                                 print("Error: effect parameter must be 'off' or 'move'")
                                 can_set = False
                             if direction.lower() not in ["left", "right"]:
-                                print("Error: direction parameter must be 'right' or 'left")
+                                print(
+                                    "Error: direction parameter must be 'right' or 'left"
+                                )
                                 can_set = False
 
                             if can_set:
-                                e = alix.aiolifx.MultiZoneEffectType[effect.upper()].value
-                                d = alix.aiolifx.MultiZoneDirection[direction.upper()].value
-                                MyBulbs.boi.set_multizone_effect(effect=e, speed=3, direction=d)
+                                e = alix.aiolifx.MultiZoneEffectType[
+                                    effect.upper()
+                                ].value
+                                d = alix.aiolifx.MultiZoneDirection[
+                                    direction.upper()
+                                ].value
+                                MyBulbs.boi.set_multizone_effect(
+                                    effect=e, speed=3, direction=d
+                                )
 
                         elif len(lov) == 2:
                             MyBulbs.boi.set_multizone_effect(effect=0)
 
                         else:
-                            print("Error: need to provide effect and direction parameters.")
+                            print(
+                                "Error: need to provide effect and direction parameters."
+                            )
 
                         MyBulbs.boi = None
-
 
                 elif int(lov[0]) == 99:
                     # Reboot bulb
