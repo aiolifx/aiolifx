@@ -31,6 +31,7 @@ from functools import partial
 from math import floor
 import time, random, datetime, socket, ifaddr
 
+
 # A couple of constants
 LISTEN_IP = "0.0.0.0"
 UDP_BROADCAST_IP = "255.255.255.255"
@@ -862,6 +863,7 @@ class Light(Device):
         super(Light, self).__init__(loop, mac_addr, ip_addr, port, parent)
         self.color = None
         self.color_zones = None
+        self.zones_count = 1
         self.infrared_brightness = None
         self.hev_cycle = None
         self.hev_cycle_configuration = None
@@ -1194,6 +1196,97 @@ class Light(Device):
                 self.effect["direction"] = MultiZoneDirection(
                     resp.direction
                 ).name.capitalize()
+
+    def get_extended_color_zones(self, callb=None):
+        """
+        Convenience method to request the state of all zones of a multizone device
+        in a single request.
+
+        The device must have the extended_multizone feature to use this method.
+
+        This method will request the information from the device and request that callb
+        be executed when a response is received.
+
+        :param callb: Callable to be used when the response is received. If not set,
+                    self.resp_set_multizonemultizoneextendedcolorzones will be used.
+        :type callb: callable
+        :returns: None
+        :rtype: None
+        """
+        self.req_with_resp(
+            MultiZoneGetExtendedColorZones,
+            MultiZoneStateExtendedColorZones,
+            callb=callb,
+        )
+
+    def set_extended_color_zones(
+        self,
+        colors,
+        colors_count,
+        zone_index=0,
+        duration=0,
+        apply=1,
+        callb=None,
+        rapid=False,
+    ):
+        """
+        Convenience method to set the state of all zones on a multizone device in
+        a single request.
+
+        The device must have the extended_multizone feature to use this method.
+        There must be 82 color tuples in the colors list regardless of how many
+        zones the device has. Use the colors_count parameter to specify the number
+        of colors from the colors list that should be applied to the device and
+        use the zone_index parameter to specify the starting zone.
+
+        :param colors List of color dictionaries with HSBK keys
+        :type colors List[dict[str, int]]
+        :param colors_count How many color values in the color list to apply to the device
+        :type colors_count int
+        :param zone_index Which zone to start applying the colors from (default 0)
+        :type zone_index int
+        :param duration duration in seconds to apply the colors (default 0)
+        :type duration int
+        :param apply whether to apply the colors or buffer the new value (default 1 or apply)
+        :type apply int
+        :param callb Callback function to invoke when the response is received
+        :type callb Callable
+        :returns None
+        :rtype None
+        """
+        if len(colors) == 82:
+            args = {
+                "duration": duration,
+                "apply": apply,
+                "zone_index": zone_index,
+                "colors_count": colors_count,
+                "colors": colors,
+            }
+            mypartial = partial(self.resp_set_multizoneextendedcolorzones, args=args)
+
+            if callb:
+                mycallb = lambda x, y: (mypartial(y), callb(x, y))
+            else:
+                mycallb = lambda x, y: mypartial(y)
+
+            if rapid:
+                self.fire_and_forget(
+                    MultiZoneSetExtendedColorZones, args, num_repeats=1
+                )
+                mycallb(self, None)
+            else:
+                self.req_with_ack(MultiZoneSetExtendedColorZones, args, callb=mycallb)
+
+    def resp_set_multizoneextendedcolorzones(self, resp, args=None):
+        """Default callback for get_extended_color_zones"""
+        if args:
+            if self.color_zones:
+                for i in range(args["zone_index"], args["colors_count"]):
+                    self.color_zones[i] = args["colors"][i]
+
+        elif resp:
+            self.zones_count = resp.zones_count
+            self.color_zones = resp.colors[resp.zone_index : resp.colors_count]
 
     # value should be a dictionary with the the following keys: transient, color, period, cycles, skew_ratio, waveform
     def set_waveform(self, value, callb=None, rapid=False):

@@ -454,6 +454,25 @@ def unpack_lifx_message(packed_message):
             target_addr, source_id, seq_num, payload, ack_requested, response_requested
         )
 
+    elif message_type == MSG_IDS[MultiZoneStateExtendedColorZones]:  # 512
+        zones_count = struct.unpack("H", payload_str[0:2])[0]
+        zone_index = struct.unpack("H", payload_str[2:4])[0]
+        colors_count = struct.unpack("B", payload_str[4:5])[0]
+        colors = []
+        for i in range(82):
+            color = struct.unpack("H" * 4, payload_str[5 + (i * 8) : 13 + (i * 8)])
+            colors.append(color)
+
+        payload = {
+            "zones_count": zones_count,
+            "zone_index": zone_index,
+            "colors_count": colors_count,
+            "colors": colors,
+        }
+        message = MultiZoneStateExtendedColorZones(
+            target_addr, source_id, seq_num, payload, ack_requested, response_requested
+        )
+
     else:
         message = Message(
             message_type,
