@@ -6,6 +6,7 @@
 # Need to look into assert-type frameworks or something, there has to be a tool for that.
 # Also need to make custom errors possibly, though tool may have those.
 
+from curses import color_content
 from .message import Message, BROADCAST_MAC, HEADER_SIZE_BYTES, little_endian
 import bitstring
 from enum import Enum
@@ -1616,6 +1617,102 @@ class MultiZoneStateMultiZoneEffect(Message):
         return MultiZoneDirection(self.direction).name.lower()
 
 
+class MultiZoneSetExtendedColorZones(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.duration = payload["duration"]
+        self.apply = payload["apply"]
+        self.zone_index = payload["zone_index"]
+        self.colors_count = payload["colors_count"]
+        self.colors = payload["colors"]
+        super(MultiZoneSetExtendedColorZones, self).__init__(
+            MSG_IDS[MultiZoneSetExtendedColorZones],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        duration = little_endian(bitstring.pack("uint:32", self.duration))
+        apply = little_endian(bitstring.pack("uint:8", self.apply))
+        zone_index = little_endian(bitstring.pack("uint:16", self.zone_index))
+        colors_count = little_endian(bitstring.pack("uint:8", self.colors_count))
+        payload = duration + apply + zone_index + colors_count
+        for color in self.colors:
+            payload += b"".join(
+                little_endian(bitstring.pack("uint:16", field)) for field in color
+            )
+        return payload
+
+
+class MultiZoneGetExtendedColorZones(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload={},
+        ack_requested=False,
+        response_requested=False,
+    ):
+        super(MultiZoneGetExtendedColorZones, self).__init__(
+            MSG_IDS[MultiZoneGetExtendedColorZones],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+
+class MultiZoneStateExtendedColorZones(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.zones_count = payload["zones_count"]
+        self.zone_index = payload["zone_index"]
+        self.colors_count = payload["colors_count"]
+        self.colors = payload["colors"]
+        super(MultiZoneStateExtendedColorZones, self).__init__(
+            MSG_IDS[MultiZoneStateExtendedColorZones],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        self.payload_fields.append(("Zones Count", self.zones_count))
+        self.payload_fields.append(("Zone Index", self.zone_index))
+        self.payload_fields.append(("Colors count", self.colors_count))
+        self.payload_fields.append(("Colors", self.colors))
+        zones_count = little_endian(bitstring.pack("uint:16", self.zones_count))
+        zone_index = little_endian(bitstring.pack("uint:16", self.zone_index))
+        colors_count = little_endian(bitstring.pack("uint:8", self.colors_count))
+        payload = zones_count + zone_index + colors_count
+        for color in self.colors:
+            payload += b"".join(
+                little_endian(bitstring.pack("uint:16", field)) for field in color
+            )
+        return payload
+
+
 MSG_IDS = {
     GetService: 2,
     StateService: 3,
@@ -1671,6 +1768,9 @@ MSG_IDS = {
     MultiZoneGetMultiZoneEffect: 507,
     MultiZoneSetMultiZoneEffect: 508,
     MultiZoneStateMultiZoneEffect: 509,
+    MultiZoneSetExtendedColorZones: 510,
+    MultiZoneGetExtendedColorZones: 511,
+    MultiZoneStateExtendedColorZones: 512,
 }
 
 SERVICE_IDS = {1: "UDP", 2: "reserved", 3: "reserved", 4: "reserved"}
