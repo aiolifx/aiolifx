@@ -1554,6 +1554,94 @@ class Light(Device):
         if resp:
             self.last_hev_cycle_result = LAST_HEV_CYCLE_RESULT.get(resp.result)
 
+    def get_tile_effect(self, callb=None):
+        """Convenience method to get the currently running effect on a Tile or Candle.
+
+        The value returned is the previously known state of the effect. Use a callback
+        to get the actual current state.
+
+        :param callb: callable to be used when a response is received. If not set,
+                      self.resp_set_tileeffect will be used.
+        :type callb: callable
+        :returns: current effect details as a dictionary
+        :rtype: dict
+        """
+        response = self.req_with_resp(
+            TileGetTileEffect, TileStateTileEffect, callb=callb
+        )
+        return self.effect
+
+    def set_tile_effect(self, effect=0, speed=3, palette=None, callb=None, rapid=False):
+        """Convenience method to start or stop a firmware effect on matrix devices.
+
+        A palette of up to 16 HSBK tuples can be provided for the MORPH effect, otherwise
+        it will use the same Exciting theme used by the LIFX smart phone app.
+
+        :param effect: 0/Off, 2/Morph, 3/Flame
+        :type effect: int/str
+        :param speed: time in seconds for one cycle of the effect to travel the length of the device
+        :type speed: int
+        :param palette: a list of up to 16 HSBK tuples to use for the Morph effect
+        :type palette: list[tuple(hue, saturation, brightness, kelvin)]
+        :param callb: a callback to use when the response is received
+        :type callb: callable
+        :param rapid: whether to request an acknowledgement or not
+        :type rapid: bool
+        :returns: None
+        :rtype: None
+        """
+
+        # Exciting theme
+        default_tile_palette = [
+            (0, 65535, 65535, 3500),
+            (7282, 65535, 65535, 3500),
+            (10923, 65535, 65535, 3500),
+            (22209, 65535, 65535, 3500),
+            (43509, 65535, 65535, 3500),
+            (49334, 65535, 65535, 3500),
+            (53521, 65535, 65535, 3500),
+        ]
+
+        typ = effect
+        if type(effect) == str:
+            typ = TileEffectType[effect.upper()].value
+        elif type(effect) == int:
+            typ = effect if effect in [e.value for e in TileEffectType] else 0
+
+        speed = floor(speed * 1000) if 0 < speed <= 60 else 3000
+        if palette is None:
+            palette = default_tile_palette
+        if len(palette) > 16:
+            palette = palette[:16]
+        palette_count = len(palette)
+
+        payload = {
+            "type": typ,
+            "speed": speed,
+            "duration": 0,
+            "palette_count": palette_count,
+            "palette": palette,
+        }
+        if rapid:
+            self.fire_and_forget(TileSetTileEffect, payload)
+        else:
+            self.req_with_ack(TileSetTileEffect, payload, callb=callb)
+
+    def resp_set_tiletileeffect(self, resp):
+        """Default callback for get_tile_effect and set_tile_effect"""
+        if resp:
+            self.effect = {"effect": TileEffectType(resp.effect).name.upper()}
+
+            if resp.effect != 0:
+                self.effect["speed"] = resp.speed / 1000
+                self.effect["duration"] = (
+                    0.0
+                    if resp.duration == 0
+                    else float(f"{self.effect['duration']/1000000000:4f}")
+                )
+                self.effect["palette_count"] = resp.palette_count
+                self.effect["palette"] = resp.palette
+
     def get_accesspoint(self, callb=None):
         """Convenience method to request the access point available
 

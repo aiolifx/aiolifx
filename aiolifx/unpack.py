@@ -473,6 +473,29 @@ def unpack_lifx_message(packed_message):
             target_addr, source_id, seq_num, payload, ack_requested, response_requested
         )
 
+    elif message_type == MSG_IDS[TileStateTileEffect]:  # 720
+        instanceid = struct.unpack("I", payload_str[1:5])[0]
+        effect = struct.unpack("B", payload_str[5:6])[0]
+        speed = struct.unpack("I", payload_str[6:10])[0]
+        duration = struct.unpack("Q", payload_str[10:18])[0]
+        palette_count = struct.unpack("B", payload_str[58:59])[0]
+        palette = []
+        for i in range(16):
+            color = struct.unpack("H" * 4, payload_str[59 + (i * 8) : 67 + (i * 8)])
+            palette.append(color)
+
+        payload = {
+            "instanceid": instanceid,
+            "effect": effect,
+            "speed": speed,
+            "duration": duration,
+            "palette_count": palette_count,
+            "palette": palette,
+        }
+        message = TileStateTileEffect(
+            target_addr, source_id, seq_num, payload, ack_requested, response_requested
+        )
+
     else:
         message = Message(
             message_type,
