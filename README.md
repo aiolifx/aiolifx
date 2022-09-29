@@ -108,4 +108,4 @@ Other things worth noting:
 
 # Thanks
 
-Thanks to Anders Melchiorsen for his essential contributions
+Thanks to Anders Melchiorsen and Avi Miller for their essential contributions
