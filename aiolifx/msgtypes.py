@@ -1713,6 +1713,126 @@ class MultiZoneStateExtendedColorZones(Message):
         return payload
 
 
+class TileGetTileEffect(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload={},
+        ack_requested=False,
+        response_requested=False,
+    ):
+        super(TileGetTileEffect, self).__init__(
+            MSG_IDS[TileGetTileEffect],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+
+class TileSetTileEffect(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.instanceid = random.randrange(1, 1 << 32)
+        self.type = payload["type"]
+        self.speed = payload["speed"]
+        self.duration = payload["duration"]
+        self.palette_count = payload["palette_count"]
+        self.palette = payload["palette"]
+        super(TileSetTileEffect, self).__init__(
+            MSG_IDS[TileSetTileEffect],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        reserved8 = little_endian(bitstring.pack("int:8", 0))
+        reserved9 = little_endian(bitstring.pack("int:8", 0))
+        instanceid = little_endian(bitstring.pack("uint:32", self.instanceid))
+        type = little_endian(bitstring.pack("uint:8", self.type))
+        speed = little_endian(bitstring.pack("uint:32", self.speed))
+        duration = little_endian(bitstring.pack("uint:64", self.duration))
+        reserved6 = little_endian(bitstring.pack("int:32", 0))
+        reserved7 = little_endian(bitstring.pack("int:32", 0))
+        parameters = little_endian(bitstring.pack("int:32", 0))
+        palette_count = little_endian(bitstring.pack("uint:8", self.palette_count))
+        payload = (
+            reserved8
+            + reserved9
+            + instanceid
+            + type
+            + speed
+            + duration
+            + reserved6
+            + reserved7
+            + parameters * 8
+            + palette_count
+        )
+        for color in self.palette:
+            payload += b"".join(
+                little_endian(bitstring.pack("uint:16", field)) for field in color
+            )
+        return payload
+
+
+class TileStateTileEffect(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.instanceid = payload["instanceid"]
+        self.effect = payload["effect"]
+        self.speed = payload["speed"]
+        self.duration = payload["duration"]
+        self.palette_count = payload["palette_count"]
+        self.palette = payload["palette"]
+        super(TileStateTileEffect, self).__init__(
+            MSG_IDS[TileStateTileEffect],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        self.payload_fields.append("Instance ID", self.instanceid)
+        self.payload_fields.append("Effect", self.effect)
+        self.payload_fields.append("Speed", self.speed)
+        self.payload_fields.append("Duration", self.duration)
+        self.payload_fields.append("Palette Count", self.palette_count)
+        self.payload_fields.append("Palette", self.palette)
+        instanceid = little_endian(bitstring.pack("uint:32", self.instanceid))
+        effect = little_endian(bitstring.pack("uint:8", self.effect))
+        speed = little_endian(bitstring.pack("uint:32", self.speed))
+        duration = little_endian(bitstring.pack("uint:64", self.duration))
+        palette_count = little_endian(bitstring.pack("uint:8", self.palette_count))
+        payload = instanceid + effect + speed + duration + palette_count
+        for color in self.palette:
+            payload += b"".join(
+                little_endian(bitstring.pack("uint:16", field)) for field in color
+            )
+        return payload
+
+
 MSG_IDS = {
     GetService: 2,
     StateService: 3,
@@ -1771,6 +1891,9 @@ MSG_IDS = {
     MultiZoneSetExtendedColorZones: 510,
     MultiZoneGetExtendedColorZones: 511,
     MultiZoneStateExtendedColorZones: 512,
+    TileGetTileEffect: 718,
+    TileSetTileEffect: 719,
+    TileStateTileEffect: 720,
 }
 
 SERVICE_IDS = {1: "UDP", 2: "reserved", 3: "reserved", 4: "reserved"}
@@ -1802,6 +1925,14 @@ class MultiZoneDirection(Enum):
     LEFT = 1
     BACKWARD = 0
     FORWARD = 1
+
+
+class TileEffectType(Enum):
+    OFF = 0
+    RESERVED1 = 1
+    MORPH = 2
+    FLAME = 3
+    RESERVED2 = 4
 
 
 def str_map(key):
