@@ -116,7 +116,7 @@ class Device(aio.DatagramProtocol):
         self.seq = 0
         # Key is the message sequence, value is (Response, Event, callb )
         self.message = {}
-        self.source_id = random.randint(0, (2**32) - 1)
+        self.source_id = random.randint(0, (2 ** 32) - 1)
         # Default callback for unexpected messages
         self.default_callb = None
         # And the rest
@@ -598,7 +598,9 @@ class Device(aio.DatagramProtocol):
         else:
             mycallb = lambda x, y: mypartial(y)
         if value in on and not rapid:
-            response = self.req_with_ack(SetPower, {"power_level": 65535}, callb=mycallb)
+            response = self.req_with_ack(
+                SetPower, {"power_level": 65535}, callb=mycallb
+            )
         elif value in off and not rapid:
             response = self.req_with_ack(SetPower, {"power_level": 0}, callb=mycallb)
         elif value in on and rapid:
@@ -635,7 +637,9 @@ class Device(aio.DatagramProtocol):
                 mycallb = lambda x, y: (mypartial(y), callb(x, y))
             else:
                 mycallb = lambda x, y: mypartial(y)
-            response = self.req_with_resp(GetWifiFirmware, StateWifiFirmware, callb=mycallb)
+            response = self.req_with_resp(
+                GetWifiFirmware, StateWifiFirmware, callb=mycallb
+            )
         return (self.wifi_firmware_version, self.wifi_firmware_build_timestamp)
 
     def resp_set_wififirmware(self, resp):
@@ -682,7 +686,9 @@ class Device(aio.DatagramProtocol):
                 mycallb = lambda x, y: (mypartial(y), callb(x, y))
             else:
                 mycallb = lambda x, y: mypartial(y)
-            response = self.req_with_resp(GetHostFirmware, StateHostFirmware, callb=mycallb)
+            response = self.req_with_resp(
+                GetHostFirmware, StateHostFirmware, callb=mycallb
+            )
 
         return (self.host_firmware_version, self.host_firmware_build_timestamp)
 
@@ -1705,7 +1711,7 @@ class LifxDiscovery(aio.DatagramProtocol):
         self.transport = None
         self.loop = loop
         self.task = None
-        self.source_id = random.randint(0, (2**32) - 1)
+        self.source_id = random.randint(0, (2 ** 32) - 1)
         self.ipv6prefix = ipv6prefix
         self.discovery_interval = discovery_interval
         self.discovery_step = discovery_step
