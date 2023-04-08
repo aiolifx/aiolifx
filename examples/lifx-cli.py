@@ -27,6 +27,7 @@ import asyncio as aio
 import aiolifx as alix
 from time import sleep
 from functools import partial
+from enum import Enum
 
 # Simple bulb control frpm console
 class bulbs:
@@ -54,6 +55,19 @@ class bulbs:
                 break
             idx += 1
 
+class BulbOptions(Enum):
+    BACK = 0
+    POWER = 1
+    WHITE = 2
+    COLOUR = 3
+    INFO = 4
+    FIRMWARE = 5
+    WIFI = 6
+    UPTIME = 7
+    PULSE = 8
+    HEV_CYCLE_OR_FIRMWARE_EFFECT = 9
+    HEV_CONFIGURATION_OR_FIRMWARE_EFFECT_START_STOP = 10
+    REBOOT = 99
 
 def readin():
     """Reading from stdin and displaying menu"""
@@ -65,15 +79,15 @@ def readin():
         if MyBulbs.boi:
             # try:
             if True:
-                if int(lov[0]) == 0:
+                if int(lov[0]) == BulbOptions.BACK.value:
                     MyBulbs.boi = None
-                elif int(lov[0]) == 1:
+                elif int(lov[0]) == BulbOptions.POWER.value:
                     if len(lov) > 1:
                         MyBulbs.boi.set_power(lov[1].lower() in ["1", "on", "true"])
                         MyBulbs.boi = None
                     else:
                         print("Error: For power you must indicate on or off\n")
-                elif int(lov[0]) == 2:
+                elif int(lov[0]) == BulbOptions.WHITE.value:
                     if len(lov) > 2:
                         try:
                             MyBulbs.boi.set_color(
@@ -94,7 +108,7 @@ def readin():
                         print(
                             "Error: For white you must indicate brightness (0-100) and temperature (2500-9000)\n"
                         )
-                elif int(lov[0]) == 3:
+                elif int(lov[0]) == BulbOptions.COLOUR.value:
                     if len(lov) > 3:
                         try:
                             MyBulbs.boi.set_color(
@@ -115,26 +129,26 @@ def readin():
                             "Error: For colour you must indicate hue (0-360), saturation (0-100) and brightness (0-100))\n"
                         )
 
-                elif int(lov[0]) == 4:
+                elif int(lov[0]) == BulbOptions.INFO.value:
                     print(MyBulbs.boi.device_characteristics_str("    "))
                     print(MyBulbs.boi.device_product_str("    "))
                     MyBulbs.boi = None
-                elif int(lov[0]) == 5:
+                elif int(lov[0]) == BulbOptions.FIRMWARE.value:
                     print(MyBulbs.boi.device_firmware_str("   "))
                     MyBulbs.boi = None
-                elif int(lov[0]) == 6:
+                elif int(lov[0]) == BulbOptions.WIFI.value:
                     mypartial = partial(MyBulbs.boi.device_radio_str)
                     MyBulbs.boi.get_wifiinfo(
                         callb=lambda x, y: print("\n" + mypartial(y))
                     )
                     MyBulbs.boi = None
-                elif int(lov[0]) == 7:
+                elif int(lov[0]) == BulbOptions.UPTIME.value:
                     mypartial = partial(MyBulbs.boi.device_time_str)
                     MyBulbs.boi.get_hostinfo(
                         callb=lambda x, y: print("\n" + mypartial(y))
                     )
                     MyBulbs.boi = None
-                elif int(lov[0]) == 8:
+                elif int(lov[0]) == BulbOptions.PULSE.value:
                     if len(lov) > 3:
                         try:
                             print(
@@ -171,9 +185,8 @@ def readin():
                         print(
                             "Error: For pulse you must indicate hue (0-360), saturation (0-100) and brightness (0-100))\n"
                         )
-                elif int(lov[0]) == 9:
-                    if alix.aiolifx.features_map[MyBulbs.boi.product]["hev"] is True:
-                        # HEV cycle
+                elif int(lov[0]) == BulbOptions.HEV_CYCLE_OR_FIRMWARE_EFFECT.value:
+                    if alix.aiolifx.features_map[MyBulbs.boi.product]["hev"] is True: # HEV cycle
                         if len(lov) == 1:
                             # Get current state
                             print("Getting current HEV state")
@@ -213,8 +226,7 @@ def readin():
                     elif (
                         alix.aiolifx.features_map[MyBulbs.boi.product]["multizone"]
                         is True
-                    ):
-                        # Multizone firmware effect
+                    ): # Multizone firmware effect
                         print(
                             "Getting current firmware effect state from multizone device"
                         )
@@ -228,9 +240,8 @@ def readin():
                         )
                         MyBulbs.boi = None
 
-                elif int(lov[0]) == 10:
-                    if alix.aiolifx.features_map[MyBulbs.boi.product]["hev"] is True:
-                        # HEV cycle configuration
+                elif int(lov[0]) == BulbOptions.HEV_CONFIGURATION_OR_FIRMWARE_EFFECT_START_STOP.value:
+                    if alix.aiolifx.features_map[MyBulbs.boi.product]["hev"] is True: # HEV cycle configuration
                         if len(lov) == 1:
                             # Get current state
                             print("Getting current HEV configuration")
@@ -263,7 +274,7 @@ def readin():
                     elif (
                         alix.aiolifx.features_map[MyBulbs.boi.product]["multizone"]
                         is True
-                    ):
+                    ): # Start/stop firmware effect
                         can_set = True
                         if len(lov) == 3:
                             effect = str(lov[1])
@@ -299,8 +310,7 @@ def readin():
 
                         MyBulbs.boi = None
 
-                elif int(lov[0]) == 99:
-                    # Reboot bulb
+                elif int(lov[0]) == BulbOptions.REBOOT.value:
                     print(
                         "Rebooting bulb in 3 seconds. If the bulb is on, it will flicker off and back on as it reboots."
                     )
@@ -325,23 +335,23 @@ def readin():
 
     if MyBulbs.boi:
         print("Select Function for {}:".format(MyBulbs.boi.label))
-        print("\t[1]\tPower (0 or 1)")
-        print("\t[2]\tWhite (Brightness Temperature)")
-        print("\t[3]\tColour (Hue Saturation Brightness)")
-        print("\t[4]\tInfo")
-        print("\t[5]\tFirmware")
-        print("\t[6]\tWifi")
-        print("\t[7]\tUptime")
-        print("\t[8]\tPulse")
+        print(f"\t[{BulbOptions.POWER.value}]\tPower (0 or 1)")
+        print(f"\t[{BulbOptions.WHITE.value}]\tWhite (Brightness Temperature)")
+        print(f"\t[{BulbOptions.COLOUR.value}]\tColour (Hue Saturation Brightness)")
+        print(f"\t[{BulbOptions.INFO.value}]\tInfo")
+        print(f"\t[{BulbOptions.FIRMWARE.value}]\tFirmware")
+        print(f"\t[{BulbOptions.WIFI.value}]\tWifi")
+        print(f"\t[{BulbOptions.UPTIME.value}]\tUptime")
+        print(f"\t[{BulbOptions.PULSE.value}]\tPulse")
         if alix.aiolifx.features_map[MyBulbs.boi.product]["hev"] is True:
-            print("\t[9]\tHEV cycle (duration, or -1 to stop)")
-            print("\t[10]\tHEV configuration (indication, duration)")
+            print(f"\t[{BulbOptions.HEV_CYCLE_OR_FIRMWARE_EFFECT.value}]\tHEV cycle (duration, or -1 to stop)")
+            print(f"\t[{BulbOptions.HEV_CONFIGURATION_OR_FIRMWARE_EFFECT_START_STOP.value}]\tHEV configuration (indication, duration)")
         if alix.aiolifx.features_map[MyBulbs.boi.product]["multizone"] is True:
-            print("\t[9]\tGet firmware effect status")
-            print("\t[10]\tStart or stop firmware effect ([off/move] [right|left])")
-        print("\t[99]\tReboot the bulb (indicated by a reboot blink)")
+            print(f"\t[{BulbOptions.HEV_CYCLE_OR_FIRMWARE_EFFECT.value}]\tGet firmware effect status")
+            print(f"\t[{BulbOptions.HEV_CONFIGURATION_OR_FIRMWARE_EFFECT_START_STOP.value}]\tStart or stop firmware effect ([off/move] [right|left])")
+        print(f"\t[{BulbOptions.REBOOT.value}]\tReboot the bulb (indicated by a reboot blink)")
         print("")
-        print("\t[0]\tBack to bulb selection")
+        print(f"\t[{BulbOptions.BACK.value}]\tBack to bulb selection")
     else:
         idx = 1
         print("Select Bulb:")
