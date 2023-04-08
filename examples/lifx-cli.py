@@ -298,6 +298,29 @@ def readin():
                             )
 
                         MyBulbs.boi = None
+                
+                elif int(lov[0]) == 11: # Relays
+                    callback = lambda x, statePower: print(f"Relay {statePower.relay_index + 1}: {'On' if statePower.level == 65535 else 'Off'}") # +1 to use 1-indexing
+                    if alix.aiolifx.features_map[MyBulbs.boi.product]["relays"] is True:
+                        if len(lov) == 3: # If user provides relay index as second param AND a third param off or on
+                            relay_index = int(lov[1]) - 1 # -1 to use 1-indexing
+                            on = [True, 1, "on"]
+                            off = [False, 0, "off"]
+                            set_power = partial(MyBulbs.boi.set_rpower, relay_index, callb=callback)
+                            if lov[2] in on:
+                                set_power(True)
+                            elif lov[2] in off:
+                                set_power(False)
+                            else:
+                                values_list = ", ".join([str(x) for lst in [on, off] for x in lst])
+                                print(f"Argument not known. Use one of these values: {values_list}")
+                        elif len(lov) == 2: # User has provided a relay index but isn't trying to set the value
+                            relay_index = int(lov[1]) - 1 # -1 to use 1-indexing
+                            MyBulbs.boi.get_rpower(relay_index, callb=callback)
+                        else: # User hasn't provided a relay index so wants all values
+                            MyBulbs.boi.get_rpower(callb=callback)
+                    else:
+                        print("This device isn't a switch and therefore doesn't have relays")
 
                 elif int(lov[0]) == 99:
                     # Reboot bulb
@@ -339,6 +362,8 @@ def readin():
         if alix.aiolifx.features_map[MyBulbs.boi.product]["multizone"] is True:
             print("\t[9]\tGet firmware effect status")
             print("\t[10]\tStart or stop firmware effect ([off/move] [right|left])")
+        if alix.aiolifx.features_map[MyBulbs.boi.product]["relays"] is True:
+            print("\t[11]\tRelays; optionally followed by relay number (beginning at 1); optionally followed by `on` or `off` to set the value")
         print("\t[99]\tReboot the bulb (indicated by a reboot blink)")
         print("")
         print("\t[0]\tBack to bulb selection")
