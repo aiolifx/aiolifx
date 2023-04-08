@@ -1832,6 +1832,92 @@ class TileStateTileEffect(Message):
             )
         return payload
 
+##### RELAY (SWITCH) MESSAGES #####
+##### https://lan.developer.lifx.com/docs/the-lifx-switch #####
+
+class GetRPower(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload={},
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.relay_index = payload["relay_index"]
+        super(GetRPower, self).__init__(
+            MSG_IDS[GetRPower],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        self.payload_fields.append(("Relay Index", self.relay_index))
+        relay_index = little_endian(bitstring.pack("uint:8", self.relay_index))
+        payload = relay_index
+        return payload
+
+class SetRPower(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.relay_index = payload["relay_index"]
+        self.level = payload["level"]
+        super(SetRPower, self).__init__(
+            MSG_IDS[SetRPower],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        self.payload_fields.append(("Relay Index", self.relay_index))
+        self.payload_fields.append(("Level", self.level))
+        relay_index = little_endian(bitstring.pack("uint:8", self.relay_index))
+        level = little_endian(bitstring.pack("uint:16", self.level))
+        payload = relay_index + level
+        return payload
+
+class StateRPower(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.relay_index = payload["relay_index"]
+        self.level = payload["level"]
+        super(StateRPower, self).__init__(
+            MSG_IDS[StateRPower],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        self.payload_fields.append(("Relay Index", self.relay_index))
+        self.payload_fields.append(("Level", self.level))
+        relay_index = little_endian(bitstring.pack("uint:8", self.relay_index))
+        level = little_endian(bitstring.pack("uint:32", self.level))
+        payload = relay_index + level
+        return payload
 
 MSG_IDS = {
     GetService: 2,
@@ -1894,6 +1980,9 @@ MSG_IDS = {
     TileGetTileEffect: 718,
     TileSetTileEffect: 719,
     TileStateTileEffect: 720,
+    GetRPower: 816,
+    SetRPower: 817,
+    StateRPower: 818,
 }
 
 SERVICE_IDS = {1: "UDP", 2: "reserved", 3: "reserved", 4: "reserved"}
