@@ -186,7 +186,7 @@ def readin():
                             "Error: For pulse you must indicate hue (0-360), saturation (0-100) and brightness (0-100))\n"
                         )
                 elif int(lov[0]) == BulbOptions.HEV_CYCLE_OR_FIRMWARE_EFFECT.value:
-                    if alix.aiolifx.features_map[MyBulbs.boi.product]["hev"] is True: # HEV cycle
+                    if alix.aiolifx.products_dict[MyBulbs.boi.product].hev is True: # HEV cycle
                         if len(lov) == 1:
                             # Get current state
                             print("Getting current HEV state")
@@ -224,7 +224,7 @@ def readin():
                             print("Error: maximum 1 argument for HEV cycle")
                         MyBulbs.boi = None
                     elif (
-                        alix.aiolifx.features_map[MyBulbs.boi.product]["multizone"]
+                        alix.aiolifx.products_dict[MyBulbs.boi.product].multizone
                         is True
                     ): # Multizone firmware effect
                         print(
@@ -241,7 +241,7 @@ def readin():
                         MyBulbs.boi = None
 
                 elif int(lov[0]) == BulbOptions.HEV_CONFIGURATION_OR_FIRMWARE_EFFECT_START_STOP.value:
-                    if alix.aiolifx.features_map[MyBulbs.boi.product]["hev"] is True: # HEV cycle configuration
+                    if alix.aiolifx.products_dict[MyBulbs.boi.product].hev is True: # HEV cycle configuration
                         if len(lov) == 1:
                             # Get current state
                             print("Getting current HEV configuration")
@@ -272,7 +272,7 @@ def readin():
                             print("Error: 0 or 2 arguments for HEV config")
                         MyBulbs.boi = None
                     elif (
-                        alix.aiolifx.features_map[MyBulbs.boi.product]["multizone"]
+                        alix.aiolifx.products_dict[MyBulbs.boi.product].multizone
                         is True
                     ): # Start/stop firmware effect
                         can_set = True
@@ -343,10 +343,10 @@ def readin():
         print(f"\t[{BulbOptions.WIFI.value}]\tWifi")
         print(f"\t[{BulbOptions.UPTIME.value}]\tUptime")
         print(f"\t[{BulbOptions.PULSE.value}]\tPulse")
-        if alix.aiolifx.features_map[MyBulbs.boi.product]["hev"] is True:
+        if alix.aiolifx.products_dict[MyBulbs.boi.product].hev is True:
             print(f"\t[{BulbOptions.HEV_CYCLE_OR_FIRMWARE_EFFECT.value}]\tHEV cycle (duration, or -1 to stop)")
             print(f"\t[{BulbOptions.HEV_CONFIGURATION_OR_FIRMWARE_EFFECT_START_STOP.value}]\tHEV configuration (indication, duration)")
-        if alix.aiolifx.features_map[MyBulbs.boi.product]["multizone"] is True:
+        if alix.aiolifx.products_dict[MyBulbs.boi.product].multizone is True:
             print(f"\t[{BulbOptions.HEV_CYCLE_OR_FIRMWARE_EFFECT.value}]\tGet firmware effect status")
             print(f"\t[{BulbOptions.HEV_CONFIGURATION_OR_FIRMWARE_EFFECT_START_STOP.value}]\tStart or stop firmware effect ([off/move] [right|left])")
         print(f"\t[{BulbOptions.REBOOT.value}]\tReboot the bulb (indicated by a reboot blink)")
