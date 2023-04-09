@@ -496,6 +496,14 @@ def unpack_lifx_message(packed_message):
             target_addr, source_id, seq_num, payload, ack_requested, response_requested
         )
 
+    elif message_type == MSG_IDS[StateRPower]:  # 818
+        relay_index = struct.unpack('B', payload_str[:1])[0]
+        level = struct.unpack('>H', payload_str[1:])[0]
+        payload = {"relay_index": relay_index, "level": level}
+        message = StateRPower(
+            target_addr, source_id, seq_num, payload, ack_requested, response_requested
+        )
+
     else:
         message = Message(
             message_type,

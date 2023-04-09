@@ -40,6 +40,7 @@ DEFAULT_TIMEOUT = 0.5  # How long to wait for an ack or response
 DEFAULT_ATTEMPTS = 3  # How many time shou;d we try to send to the bulb`
 DISCOVERY_INTERVAL = 180
 DISCOVERY_STEP = 5
+MAX_UNSIGNED_16_BIT_INTEGER_VALUE = int("0xFFFF", 16)
 
 
 def mac_to_ipv6_linklocal(mac, prefix="fe80::"):
@@ -599,13 +600,13 @@ class Device(aio.DatagramProtocol):
             mycallb = lambda x, y: mypartial(y)
         if value in on and not rapid:
             response = self.req_with_ack(
-                SetPower, {"power_level": 65535}, callb=mycallb
+                SetPower, {"power_level": MAX_UNSIGNED_16_BIT_INTEGER_VALUE}, callb=mycallb
             )
         elif value in off and not rapid:
             response = self.req_with_ack(SetPower, {"power_level": 0}, callb=mycallb)
         elif value in on and rapid:
-            response = self.fire_and_forget(SetPower, {"power_level": 65535})
-            self.power_level = 65535
+            response = self.fire_and_forget(SetPower, {"power_level": MAX_UNSIGNED_16_BIT_INTEGER_VALUE})
+            self.power_level = MAX_UNSIGNED_16_BIT_INTEGER_VALUE
         elif value in off and rapid:
             response = self.fire_and_forget(SetPower, {"power_level": 0})
             self.power_level = 0
@@ -876,6 +877,10 @@ class Light(Device):
         self.hev_cycle_configuration = None
         self.last_hev_cycle_result = None
         self.effect = {"effect": None}
+        # Only used by a Lifx Switch. Will be populated with either True or False for each relay index if `get_rpower` called.
+        # At the moment we assume the switch to be 4 relays. This will likely work with the 2 relays switch as well, but only the first two values
+        # in this array will contain useful data.
+        self.relays_power = [None, None, None, None]
 
     def get_power(self, callb=None):
         """Convenience method to request the power status from the device
@@ -916,7 +921,7 @@ class Light(Device):
         on = [True, 1, "on"]
         off = [False, 0, "off"]
         if value in on:
-            myvalue = 65535
+            myvalue = MAX_UNSIGNED_16_BIT_INTEGER_VALUE
         else:
             myvalue = 0
         mypartial = partial(self.resp_set_lightpower, power_level=myvalue)
@@ -1648,6 +1653,69 @@ class Light(Device):
                 )
                 self.effect["palette_count"] = resp.palette_count
                 self.effect["palette"] = resp.palette
+
+    def get_rpower(self, relay_index=None, callb=None):
+        """Method will get the power state of all relays; or a single relay if value provided.
+
+        :param relay_index: The index of the relay to check power state for. If not provided, will loop through 4 relays
+        :type relay_index: int
+        :param callb: Callable to be used when the response is received.
+        :type callb: callable
+        :returns: The cached value
+        :rtype: int
+        """
+        mypartial = partial(self.resp_set_rpower)
+        if callb:
+            mycallb = lambda x, y: (mypartial(y), callb(x, y))
+        else:
+            mycallb = lambda x, y: mypartial(y)
+
+        if relay_index is not None:
+            payload = { "relay_index": relay_index }
+            response = self.req_with_resp(GetRPower, StateRPower, payload, callb=mycallb)
+        else:
+            for relay_index in range(4):
+                payload = { "relay_index": relay_index }
+                response = self.req_with_resp(GetRPower, StateRPower, payload, callb=mycallb)
+        return self.relays_power
+
+    def set_rpower(self, relay_index, is_on, callb=None, rapid=False):
+        """ Sets relay power for a given relay index
+
+            :param relay_index: The relay on the switch starting from 0.
+            :type relay_index: int
+            :param on: Whether the relay is on or not
+            :type is_on: bool
+            :param callb: Callable to be used when the response is received.
+            :type callb: callable
+            :param rapid: Whether to ask for ack (False) or not (True). Default False
+            :type rapid: bool
+            :returns: None
+            :rtype: None
+        """
+        level = 0
+        if is_on:
+            level = MAX_UNSIGNED_16_BIT_INTEGER_VALUE
+
+        payload = { "relay_index": relay_index, "level": level }
+        mypartial = partial(self.resp_set_rpower, relay_index=relay_index, level=level)
+        if callb:
+            mycallb = lambda x, y: (mypartial(y), callb(x, y))
+        else:
+            mycallb = lambda x, y: mypartial(y)
+        
+        if not rapid:
+            self.req_with_resp(SetRPower, StateRPower, payload, callb=mycallb)
+        else:
+            self.fire_and_forget(SetRPower, payload)
+
+    def resp_set_rpower(self, resp, relay_index=None, level=None):
+        """Default callback for get_rpower/set_rpower"""
+        if relay_index != None and level != None:
+            self.relays_power[relay_index] = level == MAX_UNSIGNED_16_BIT_INTEGER_VALUE
+        elif resp:
+            # Current models of the LIFX switch do not have dimming capability, so the two valid values are 0 for off (False) and 65535 for on (True).
+            self.relays_power[resp.relay_index] = resp.level == MAX_UNSIGNED_16_BIT_INTEGER_VALUE
 
     def get_accesspoint(self, callb=None):
         """Convenience method to request the access point available
