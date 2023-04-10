@@ -30,7 +30,10 @@ from .unpack import unpack_lifx_message
 from functools import partial
 from math import floor
 import time, random, datetime, socket, ifaddr
-
+if sys.version_info[:2] < (3, 11):
+    from async_timeout import timeout as asyncio_timeout
+else:
+    from asyncio import timeout as asyncio_timeout
 
 # A couple of constants
 LISTEN_IP = "0.0.0.0"
@@ -117,7 +120,7 @@ class Device(aio.DatagramProtocol):
         self.seq = 0
         # Key is the message sequence, value is (Response, Event, callb )
         self.message = {}
-        self.source_id = random.randint(0, (2 ** 32) - 1)
+        self.source_id = random.randint(0, (2**32) - 1)
         # Default callback for unexpected messages
         self.default_callb = None
         # And the rest
@@ -306,7 +309,8 @@ class Device(aio.DatagramProtocol):
             if self.transport:
                 self.transport.sendto(msg.packed_message)
             try:
-                myresult = await aio.wait_for(event.wait(), timeout_secs)
+                async with asyncio_timeout(timeout_secs):
+                    await event.wait()
                 break
             except Exception as inst:
                 if attempts >= max_attempts:
@@ -600,12 +604,16 @@ class Device(aio.DatagramProtocol):
             mycallb = lambda x, y: mypartial(y)
         if value in on and not rapid:
             response = self.req_with_ack(
-                SetPower, {"power_level": MAX_UNSIGNED_16_BIT_INTEGER_VALUE}, callb=mycallb
+                SetPower,
+                {"power_level": MAX_UNSIGNED_16_BIT_INTEGER_VALUE},
+                callb=mycallb,
             )
         elif value in off and not rapid:
             response = self.req_with_ack(SetPower, {"power_level": 0}, callb=mycallb)
         elif value in on and rapid:
-            response = self.fire_and_forget(SetPower, {"power_level": MAX_UNSIGNED_16_BIT_INTEGER_VALUE})
+            response = self.fire_and_forget(
+                SetPower, {"power_level": MAX_UNSIGNED_16_BIT_INTEGER_VALUE}
+            )
             self.power_level = MAX_UNSIGNED_16_BIT_INTEGER_VALUE
         elif value in off and rapid:
             response = self.fire_and_forget(SetPower, {"power_level": 0})
@@ -1671,39 +1679,43 @@ class Light(Device):
             mycallb = lambda x, y: mypartial(y)
 
         if relay_index is not None:
-            payload = { "relay_index": relay_index }
-            response = self.req_with_resp(GetRPower, StateRPower, payload, callb=mycallb)
+            payload = {"relay_index": relay_index}
+            response = self.req_with_resp(
+                GetRPower, StateRPower, payload, callb=mycallb
+            )
         else:
             for relay_index in range(4):
-                payload = { "relay_index": relay_index }
-                response = self.req_with_resp(GetRPower, StateRPower, payload, callb=mycallb)
+                payload = {"relay_index": relay_index}
+                response = self.req_with_resp(
+                    GetRPower, StateRPower, payload, callb=mycallb
+                )
         return self.relays_power
 
     def set_rpower(self, relay_index, is_on, callb=None, rapid=False):
-        """ Sets relay power for a given relay index
+        """Sets relay power for a given relay index
 
-            :param relay_index: The relay on the switch starting from 0.
-            :type relay_index: int
-            :param on: Whether the relay is on or not
-            :type is_on: bool
-            :param callb: Callable to be used when the response is received.
-            :type callb: callable
-            :param rapid: Whether to ask for ack (False) or not (True). Default False
-            :type rapid: bool
-            :returns: None
-            :rtype: None
+        :param relay_index: The relay on the switch starting from 0.
+        :type relay_index: int
+        :param on: Whether the relay is on or not
+        :type is_on: bool
+        :param callb: Callable to be used when the response is received.
+        :type callb: callable
+        :param rapid: Whether to ask for ack (False) or not (True). Default False
+        :type rapid: bool
+        :returns: None
+        :rtype: None
         """
         level = 0
         if is_on:
             level = MAX_UNSIGNED_16_BIT_INTEGER_VALUE
 
-        payload = { "relay_index": relay_index, "level": level }
+        payload = {"relay_index": relay_index, "level": level}
         mypartial = partial(self.resp_set_rpower, relay_index=relay_index, level=level)
         if callb:
             mycallb = lambda x, y: (mypartial(y), callb(x, y))
         else:
             mycallb = lambda x, y: mypartial(y)
-        
+
         if not rapid:
             self.req_with_resp(SetRPower, StateRPower, payload, callb=mycallb)
         else:
@@ -1715,7 +1727,9 @@ class Light(Device):
             self.relays_power[relay_index] = level == MAX_UNSIGNED_16_BIT_INTEGER_VALUE
         elif resp:
             # Current models of the LIFX switch do not have dimming capability, so the two valid values are 0 for off (False) and 65535 for on (True).
-            self.relays_power[resp.relay_index] = resp.level == MAX_UNSIGNED_16_BIT_INTEGER_VALUE
+            self.relays_power[resp.relay_index] = (
+                resp.level == MAX_UNSIGNED_16_BIT_INTEGER_VALUE
+            )
 
     def get_accesspoint(self, callb=None):
         """Convenience method to request the access point available
@@ -1779,7 +1793,7 @@ class LifxDiscovery(aio.DatagramProtocol):
         self.transport = None
         self.loop = loop
         self.task = None
-        self.source_id = random.randint(0, (2 ** 32) - 1)
+        self.source_id = random.randint(0, (2**32) - 1)
         self.ipv6prefix = ipv6prefix
         self.discovery_interval = discovery_interval
         self.discovery_step = discovery_step

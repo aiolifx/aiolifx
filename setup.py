@@ -20,6 +20,7 @@ setuptools.setup(
     keywords=["lifx", "light", "automation"],
     license="MIT",
     install_requires=[
+        "async_timeout>=3.0.1",
         "bitstring",
         "ifaddr",
     ],

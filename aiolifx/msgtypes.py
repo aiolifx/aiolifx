@@ -1832,8 +1832,10 @@ class TileStateTileEffect(Message):
             )
         return payload
 
+
 ##### RELAY (SWITCH) MESSAGES #####
 ##### https://lan.developer.lifx.com/docs/the-lifx-switch #####
+
 
 class GetRPower(Message):
     def __init__(
@@ -1860,6 +1862,7 @@ class GetRPower(Message):
         relay_index = little_endian(bitstring.pack("uint:8", self.relay_index))
         payload = relay_index
         return payload
+
 
 class SetRPower(Message):
     def __init__(
@@ -1890,6 +1893,7 @@ class SetRPower(Message):
         payload = relay_index + level
         return payload
 
+
 class StateRPower(Message):
     def __init__(
         self,
@@ -1918,6 +1922,7 @@ class StateRPower(Message):
         level = little_endian(bitstring.pack("uint:32", self.level))
         payload = relay_index + level
         return payload
+
 
 MSG_IDS = {
     GetService: 2,
