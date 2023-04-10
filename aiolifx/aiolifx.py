@@ -23,6 +23,8 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 # IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 import asyncio as aio
+from typing import Any, Coroutine, Set
+
 from .message import BROADCAST_MAC, BROADCAST_SOURCE_ID
 from .msgtypes import *
 from .products import *
@@ -30,6 +32,9 @@ from .unpack import unpack_lifx_message
 from functools import partial
 from math import floor
 import time, random, datetime, socket, ifaddr
+
+# prevent tasks from being garbage collected
+_BACKGROUND_TASKS: Set[aio.Task] = set()
 
 
 # A couple of constants
@@ -41,6 +46,13 @@ DEFAULT_ATTEMPTS = 3  # How many time shou;d we try to send to the bulb`
 DISCOVERY_INTERVAL = 180
 DISCOVERY_STEP = 5
 MAX_UNSIGNED_16_BIT_INTEGER_VALUE = int("0xFFFF", 16)
+
+
+def _create_background_task(coro: Coroutine) -> None:
+    """Create a background task that will not be garbage collected."""
+    task = aio.create_task(coro)
+    _BACKGROUND_TASKS.add(task)
+    task.add_done_callback(_BACKGROUND_TASKS.discard)
 
 
 def mac_to_ipv6_linklocal(mac, prefix="fe80::"):
@@ -117,7 +129,7 @@ class Device(aio.DatagramProtocol):
         self.seq = 0
         # Key is the message sequence, value is (Response, Event, callb )
         self.message = {}
-        self.source_id = random.randint(0, (2 ** 32) - 1)
+        self.source_id = random.randint(0, (2**32) - 1)
         # Default callback for unexpected messages
         self.default_callb = None
         # And the rest
@@ -272,7 +284,7 @@ class Device(aio.DatagramProtocol):
             ack_requested=False,
             response_requested=False,
         )
-        xx = self.loop.create_task(self.fire_sending(msg, num_repeats))
+        _create_background_task(self.fire_sending(msg, num_repeats))
         return True
 
     async def try_sending(self, msg, timeout_secs, max_attempts):
@@ -346,7 +358,7 @@ class Device(aio.DatagramProtocol):
             response_requested=False,
         )
         self.message[msg.seq_num] = [Acknowledgement, None, callb]
-        xx = self.loop.create_task(self.try_sending(msg, timeout_secs, max_attempts))
+        _create_background_task(self.try_sending(msg, timeout_secs, max_attempts))
         return True
 
     # Usually used for Get messages, or for state confirmation after Set (hence the optional payload)
@@ -385,7 +397,7 @@ class Device(aio.DatagramProtocol):
             response_requested=True,
         )
         self.message[msg.seq_num] = [response_type, None, callb]
-        xx = self.loop.create_task(self.try_sending(msg, timeout_secs, max_attempts))
+        _create_background_task(self.try_sending(msg, timeout_secs, max_attempts))
         return True
 
     # Not currently implemented, although the LIFX LAN protocol supports this kind of workflow natively
@@ -422,7 +434,7 @@ class Device(aio.DatagramProtocol):
             response_requested=True,
         )
         self.message[msg.seq_num] = [response_type, None, callb]
-        xx = self.loop.create_task(self.try_sending(msg, timeout_secs, max_attempts))
+        _create_background_task(self.try_sending(msg, timeout_secs, max_attempts))
         return True
 
     #
@@ -600,12 +612,16 @@ class Device(aio.DatagramProtocol):
             mycallb = lambda x, y: mypartial(y)
         if value in on and not rapid:
             response = self.req_with_ack(
-                SetPower, {"power_level": MAX_UNSIGNED_16_BIT_INTEGER_VALUE}, callb=mycallb
+                SetPower,
+                {"power_level": MAX_UNSIGNED_16_BIT_INTEGER_VALUE},
+                callb=mycallb,
             )
         elif value in off and not rapid:
             response = self.req_with_ack(SetPower, {"power_level": 0}, callb=mycallb)
         elif value in on and rapid:
-            response = self.fire_and_forget(SetPower, {"power_level": MAX_UNSIGNED_16_BIT_INTEGER_VALUE})
+            response = self.fire_and_forget(
+                SetPower, {"power_level": MAX_UNSIGNED_16_BIT_INTEGER_VALUE}
+            )
             self.power_level = MAX_UNSIGNED_16_BIT_INTEGER_VALUE
         elif value in off and rapid:
             response = self.fire_and_forget(SetPower, {"power_level": 0})
@@ -1671,39 +1687,43 @@ class Light(Device):
             mycallb = lambda x, y: mypartial(y)
 
         if relay_index is not None:
-            payload = { "relay_index": relay_index }
-            response = self.req_with_resp(GetRPower, StateRPower, payload, callb=mycallb)
+            payload = {"relay_index": relay_index}
+            response = self.req_with_resp(
+                GetRPower, StateRPower, payload, callb=mycallb
+            )
         else:
             for relay_index in range(4):
-                payload = { "relay_index": relay_index }
-                response = self.req_with_resp(GetRPower, StateRPower, payload, callb=mycallb)
+                payload = {"relay_index": relay_index}
+                response = self.req_with_resp(
+                    GetRPower, StateRPower, payload, callb=mycallb
+                )
         return self.relays_power
 
     def set_rpower(self, relay_index, is_on, callb=None, rapid=False):
-        """ Sets relay power for a given relay index
+        """Sets relay power for a given relay index
 
-            :param relay_index: The relay on the switch starting from 0.
-            :type relay_index: int
-            :param on: Whether the relay is on or not
-            :type is_on: bool
-            :param callb: Callable to be used when the response is received.
-            :type callb: callable
-            :param rapid: Whether to ask for ack (False) or not (True). Default False
-            :type rapid: bool
-            :returns: None
-            :rtype: None
+        :param relay_index: The relay on the switch starting from 0.
+        :type relay_index: int
+        :param on: Whether the relay is on or not
+        :type is_on: bool
+        :param callb: Callable to be used when the response is received.
+        :type callb: callable
+        :param rapid: Whether to ask for ack (False) or not (True). Default False
+        :type rapid: bool
+        :returns: None
+        :rtype: None
         """
         level = 0
         if is_on:
             level = MAX_UNSIGNED_16_BIT_INTEGER_VALUE
 
-        payload = { "relay_index": relay_index, "level": level }
+        payload = {"relay_index": relay_index, "level": level}
         mypartial = partial(self.resp_set_rpower, relay_index=relay_index, level=level)
         if callb:
             mycallb = lambda x, y: (mypartial(y), callb(x, y))
         else:
             mycallb = lambda x, y: mypartial(y)
-        
+
         if not rapid:
             self.req_with_resp(SetRPower, StateRPower, payload, callb=mycallb)
         else:
@@ -1715,7 +1735,9 @@ class Light(Device):
             self.relays_power[relay_index] = level == MAX_UNSIGNED_16_BIT_INTEGER_VALUE
         elif resp:
             # Current models of the LIFX switch do not have dimming capability, so the two valid values are 0 for off (False) and 65535 for on (True).
-            self.relays_power[resp.relay_index] = resp.level == MAX_UNSIGNED_16_BIT_INTEGER_VALUE
+            self.relays_power[resp.relay_index] = (
+                resp.level == MAX_UNSIGNED_16_BIT_INTEGER_VALUE
+            )
 
     def get_accesspoint(self, callb=None):
         """Convenience method to request the access point available
@@ -1779,7 +1801,7 @@ class LifxDiscovery(aio.DatagramProtocol):
         self.transport = None
         self.loop = loop
         self.task = None
-        self.source_id = random.randint(0, (2 ** 32) - 1)
+        self.source_id = random.randint(0, (2**32) - 1)
         self.ipv6prefix = ipv6prefix
         self.discovery_interval = discovery_interval
         self.discovery_step = discovery_step
@@ -1792,7 +1814,7 @@ class LifxDiscovery(aio.DatagramProtocol):
             lambda: self, local_addr=(listen_ip, listen_port)
         )
 
-        self.task = self.loop.create_task(coro)
+        self.task = aio.create_task(coro)
         return self.task
 
     def connection_made(self, transport):
@@ -1861,7 +1883,7 @@ class LifxDiscovery(aio.DatagramProtocol):
             lambda: light, family=family, remote_addr=(remote_ip, remote_port)
         )
 
-        light.task = self.loop.create_task(coro)
+        light.task = aio.create_task(coro)
 
     def discover(self):
         """Method to send a discovery message"""
@@ -1934,7 +1956,7 @@ class LifxScan:
             lifx_discovery = LifxDiscovery(self.loop, manager)
             discoveries.append(lifx_discovery)
             lifx_discovery.start(listen_ip=ip)
-            tasks.append(self.loop.create_task(manager.lifx_ip()))
+            tasks.append(aio.create_task(manager.lifx_ip()))
 
         (done, pending) = await aio.wait(tasks, timeout=timeout)
 
