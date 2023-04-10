@@ -21,7 +21,6 @@ class Message(object):
         ack_requested=False,
         response_requested=False,
     ):
-
         # Frame
         self.frame_format = ["<H", "<H", "<L"]
         self.size = None  # 16 bits/uint16
