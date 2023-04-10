@@ -164,12 +164,13 @@ class Device(aio.DatagramProtocol):
         _LOGGER.debug("%s: Error received: %s", self.ip_addr, exc)
         # Clear the message queue since we know they are not going to be answered
         # and there is no point in waiting for them
-        for seq in self.message:
-            response_type, myevent, callb = self.message[seq]
+        for entry in self.message.values():
+            response_type, myevent, callb = entry
             if response_type != Acknowledgement:
                 if callb:
                     callb(self, None)
-                myevent.set()
+                if myevent:
+                    myevent.set()
         self.message.clear()
 
     def datagram_received(self, data, addr):
