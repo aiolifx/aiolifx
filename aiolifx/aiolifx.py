@@ -23,6 +23,8 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 # IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 import asyncio as aio
+from typing import Any, Coroutine, Set
+
 from .message import BROADCAST_MAC, BROADCAST_SOURCE_ID
 from .msgtypes import *
 from .products import *
@@ -30,6 +32,10 @@ from .unpack import unpack_lifx_message
 from functools import partial
 from math import floor
 import time, random, datetime, socket, ifaddr
+
+# prevent tasks from being garbage collected
+_BACKGROUND_TASKS: Set[aio.Task] = set()
+
 if sys.version_info[:2] < (3, 11):
     from async_timeout import timeout as asyncio_timeout
 else:
@@ -44,6 +50,13 @@ DEFAULT_ATTEMPTS = 3  # How many time shou;d we try to send to the bulb`
 DISCOVERY_INTERVAL = 180
 DISCOVERY_STEP = 5
 MAX_UNSIGNED_16_BIT_INTEGER_VALUE = int("0xFFFF", 16)
+
+
+def _create_background_task(coro: Coroutine) -> None:
+    """Create a background task that will not be garbage collected."""
+    task = aio.create_task(coro)
+    _BACKGROUND_TASKS.add(task)
+    task.add_done_callback(_BACKGROUND_TASKS.discard)
 
 
 def mac_to_ipv6_linklocal(mac, prefix="fe80::"):
@@ -275,7 +288,7 @@ class Device(aio.DatagramProtocol):
             ack_requested=False,
             response_requested=False,
         )
-        xx = self.loop.create_task(self.fire_sending(msg, num_repeats))
+        _create_background_task(self.fire_sending(msg, num_repeats))
         return True
 
     async def try_sending(self, msg, timeout_secs, max_attempts):
@@ -350,7 +363,7 @@ class Device(aio.DatagramProtocol):
             response_requested=False,
         )
         self.message[msg.seq_num] = [Acknowledgement, None, callb]
-        xx = self.loop.create_task(self.try_sending(msg, timeout_secs, max_attempts))
+        _create_background_task(self.try_sending(msg, timeout_secs, max_attempts))
         return True
 
     # Usually used for Get messages, or for state confirmation after Set (hence the optional payload)
@@ -389,7 +402,7 @@ class Device(aio.DatagramProtocol):
             response_requested=True,
         )
         self.message[msg.seq_num] = [response_type, None, callb]
-        xx = self.loop.create_task(self.try_sending(msg, timeout_secs, max_attempts))
+        _create_background_task(self.try_sending(msg, timeout_secs, max_attempts))
         return True
 
     # Not currently implemented, although the LIFX LAN protocol supports this kind of workflow natively
@@ -426,7 +439,7 @@ class Device(aio.DatagramProtocol):
             response_requested=True,
         )
         self.message[msg.seq_num] = [response_type, None, callb]
-        xx = self.loop.create_task(self.try_sending(msg, timeout_secs, max_attempts))
+        _create_background_task(self.try_sending(msg, timeout_secs, max_attempts))
         return True
 
     #
@@ -1806,7 +1819,7 @@ class LifxDiscovery(aio.DatagramProtocol):
             lambda: self, local_addr=(listen_ip, listen_port)
         )
 
-        self.task = self.loop.create_task(coro)
+        self.task = aio.create_task(coro)
         return self.task
 
     def connection_made(self, transport):
@@ -1875,7 +1888,7 @@ class LifxDiscovery(aio.DatagramProtocol):
             lambda: light, family=family, remote_addr=(remote_ip, remote_port)
         )
 
-        light.task = self.loop.create_task(coro)
+        light.task = aio.create_task(coro)
 
     def discover(self):
         """Method to send a discovery message"""
@@ -1948,7 +1961,7 @@ class LifxScan:
             lifx_discovery = LifxDiscovery(self.loop, manager)
             discoveries.append(lifx_discovery)
             lifx_discovery.start(listen_ip=ip)
-            tasks.append(self.loop.create_task(manager.lifx_ip()))
+            tasks.append(aio.create_task(manager.lifx_ip()))
 
         (done, pending) = await aio.wait(tasks, timeout=timeout)
 
