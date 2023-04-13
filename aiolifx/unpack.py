@@ -4,6 +4,7 @@
 from .msgtypes import *
 import binascii
 
+
 # Creates a LIFX Message out of packed binary data
 # If the message type is not one of the officially released ones above, it will create just a Message out of it
 # If it's not in the LIFX protocol format, uhhhhh...we'll put that on a to-do list.
@@ -432,7 +433,6 @@ def unpack_lifx_message(packed_message):
         )
 
     elif message_type == MSG_IDS[MultiZoneStateMultiZoneEffect]:  # 509
-
         (
             instanceid,
             effect,
@@ -493,6 +493,14 @@ def unpack_lifx_message(packed_message):
             "palette": palette,
         }
         message = TileStateTileEffect(
+            target_addr, source_id, seq_num, payload, ack_requested, response_requested
+        )
+
+    elif message_type == MSG_IDS[StateRPower]:  # 818
+        relay_index = struct.unpack("B", payload_str[:1])[0]
+        level = struct.unpack(">H", payload_str[1:])[0]
+        payload = {"relay_index": relay_index, "level": level}
+        message = StateRPower(
             target_addr, source_id, seq_num, payload, ack_requested, response_requested
         )
 

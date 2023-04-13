@@ -31,6 +31,7 @@ import argparse
 
 UDP_BROADCAST_PORT = 56700
 
+
 # Simple bulb control frpm console
 class bulbs:
     """A simple class with a register and unregister methods"""

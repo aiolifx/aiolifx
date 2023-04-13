@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 import setuptools
 
-version = "0.8.9"
+version = "0.8.10"
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -20,6 +20,7 @@ setuptools.setup(
     keywords=["lifx", "light", "automation"],
     license="MIT",
     install_requires=[
+        "async_timeout>=3.0.1",
         "bitstring",
         "ifaddr",
     ],
