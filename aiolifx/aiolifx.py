@@ -23,7 +23,7 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 # IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 import asyncio as aio
-import loggin
+import logging
 from typing import Any, Coroutine, Set
 from .message import BROADCAST_MAC, BROADCAST_SOURCE_ID
 from .msgtypes import *
@@ -55,6 +55,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def _create_background_task(coro: Coroutine) -> None:
     """Create a background task that will not be garbage collected."""
+    global _BACKGROUND_TASKS
     task = aio.create_task(coro)
     _BACKGROUND_TASKS.add(task)
     task.add_done_callback(_BACKGROUND_TASKS.discard)

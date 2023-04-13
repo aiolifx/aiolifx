@@ -56,6 +56,7 @@ class bulbs:
                 break
             idx += 1
 
+
 class BulbOptions(Enum):
     BACK = 0
     POWER = 1
@@ -69,6 +70,7 @@ class BulbOptions(Enum):
     HEV_CYCLE_OR_FIRMWARE_EFFECT = 9
     HEV_CONFIGURATION_OR_FIRMWARE_EFFECT_START_STOP = 10
     REBOOT = 99
+
 
 def readin():
     """Reading from stdin and displaying menu"""
@@ -187,7 +189,9 @@ def readin():
                             "Error: For pulse you must indicate hue (0-360), saturation (0-100) and brightness (0-100))\n"
                         )
                 elif int(lov[0]) == BulbOptions.HEV_CYCLE_OR_FIRMWARE_EFFECT.value:
-                    if alix.aiolifx.products_dict[MyBulbs.boi.product].hev is True: # HEV cycle
+                    if (
+                        alix.aiolifx.products_dict[MyBulbs.boi.product].hev is True
+                    ):  # HEV cycle
                         if len(lov) == 1:
                             # Get current state
                             print("Getting current HEV state")
@@ -227,7 +231,7 @@ def readin():
                     elif (
                         alix.aiolifx.products_dict[MyBulbs.boi.product].multizone
                         is True
-                    ): # Multizone firmware effect
+                    ):  # Multizone firmware effect
                         print(
                             "Getting current firmware effect state from multizone device"
                         )
@@ -241,8 +245,13 @@ def readin():
                         )
                         MyBulbs.boi = None
 
-                elif int(lov[0]) == BulbOptions.HEV_CONFIGURATION_OR_FIRMWARE_EFFECT_START_STOP.value:
-                    if alix.aiolifx.products_dict[MyBulbs.boi.product].hev is True: # HEV cycle configuration
+                elif (
+                    int(lov[0])
+                    == BulbOptions.HEV_CONFIGURATION_OR_FIRMWARE_EFFECT_START_STOP.value
+                ):
+                    if (
+                        alix.aiolifx.products_dict[MyBulbs.boi.product].hev is True
+                    ):  # HEV cycle configuration
                         if len(lov) == 1:
                             # Get current state
                             print("Getting current HEV configuration")
@@ -275,7 +284,7 @@ def readin():
                     elif (
                         alix.aiolifx.products_dict[MyBulbs.boi.product].multizone
                         is True
-                    ): # Start/stop firmware effect
+                    ):  # Start/stop firmware effect
                         can_set = True
                         if len(lov) == 3:
                             effect = str(lov[1])
@@ -383,12 +392,22 @@ def readin():
         print(f"\t[{BulbOptions.UPTIME.value}]\tUptime")
         print(f"\t[{BulbOptions.PULSE.value}]\tPulse")
         if alix.aiolifx.products_dict[MyBulbs.boi.product].hev is True:
-            print(f"\t[{BulbOptions.HEV_CYCLE_OR_FIRMWARE_EFFECT.value}]\tHEV cycle (duration, or -1 to stop)")
-            print(f"\t[{BulbOptions.HEV_CONFIGURATION_OR_FIRMWARE_EFFECT_START_STOP.value}]\tHEV configuration (indication, duration)")
+            print(
+                f"\t[{BulbOptions.HEV_CYCLE_OR_FIRMWARE_EFFECT.value}]\tHEV cycle (duration, or -1 to stop)"
+            )
+            print(
+                f"\t[{BulbOptions.HEV_CONFIGURATION_OR_FIRMWARE_EFFECT_START_STOP.value}]\tHEV configuration (indication, duration)"
+            )
         if alix.aiolifx.products_dict[MyBulbs.boi.product].multizone is True:
-            print(f"\t[{BulbOptions.HEV_CYCLE_OR_FIRMWARE_EFFECT.value}]\tGet firmware effect status")
-            print(f"\t[{BulbOptions.HEV_CONFIGURATION_OR_FIRMWARE_EFFECT_START_STOP.value}]\tStart or stop firmware effect ([off/move] [right|left])")
-        print(f"\t[{BulbOptions.REBOOT.value}]\tReboot the bulb (indicated by a reboot blink)")
+            print(
+                f"\t[{BulbOptions.HEV_CYCLE_OR_FIRMWARE_EFFECT.value}]\tGet firmware effect status"
+            )
+            print(
+                f"\t[{BulbOptions.HEV_CONFIGURATION_OR_FIRMWARE_EFFECT_START_STOP.value}]\tStart or stop firmware effect ([off/move] [right|left])"
+            )
+        print(
+            f"\t[{BulbOptions.REBOOT.value}]\tReboot the bulb (indicated by a reboot blink)"
+        )
         print("")
         print(f"\t[{BulbOptions.BACK.value}]\tBack to bulb selection")
     else:

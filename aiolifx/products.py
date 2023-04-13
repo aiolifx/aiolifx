@@ -1,3 +1,5 @@
+from typing import List
+
 product_map = {
     1: "LIFX Original 1000",
     3: "LIFX Color 650",
@@ -1267,8 +1269,8 @@ class Product:
         max_kelvin: int,
         min_kelvin: int,
         min_ext_mz_firmware: int,
-        min_ext_mz_firmware_components: list[int],
-        temperature_range: None
+        min_ext_mz_firmware_components: List[int],
+        temperature_range: None,
     ):
         self.id = id
         self.name = name
@@ -1288,23 +1290,24 @@ class Product:
         self.temperature_range = temperature_range
 
     def __str__(self):
-        return (f"Product(id={self.id}, "
-                f"name='{self.name}', "
-                f"buttons={self.buttons}, "
-                f"chain={self.chain}, "
-                f"color={self.color}, "
-                f"extended_multizone={self.extended_multizone}, "
-                f"hev={self.hev}, "
-                f"infrared={self.infrared}, "
-                f"matrix={self.matrix}, "
-                f"multizone={self.multizone}, "
-                f"relays={self.relays}, "
-                f"max_kelvin={self.max_kelvin}, "
-                f"min_kelvin={self.min_kelvin}, "
-                f"min_ext_mz_firmware={self.min_ext_mz_firmware}, "
-                f"min_ext_mz_firmware_components={self.min_ext_mz_firmware_components}, "
-                f"temperature_range={self.temperature_range})"
-            )
+        return (
+            f"Product(id={self.id}, "
+            f"name='{self.name}', "
+            f"buttons={self.buttons}, "
+            f"chain={self.chain}, "
+            f"color={self.color}, "
+            f"extended_multizone={self.extended_multizone}, "
+            f"hev={self.hev}, "
+            f"infrared={self.infrared}, "
+            f"matrix={self.matrix}, "
+            f"multizone={self.multizone}, "
+            f"relays={self.relays}, "
+            f"max_kelvin={self.max_kelvin}, "
+            f"min_kelvin={self.min_kelvin}, "
+            f"min_ext_mz_firmware={self.min_ext_mz_firmware}, "
+            f"min_ext_mz_firmware_components={self.min_ext_mz_firmware_components}, "
+            f"temperature_range={self.temperature_range})"
+        )
 
 
 def create_product_dict(product_map, features_map):
@@ -1327,8 +1330,9 @@ def create_product_dict(product_map, features_map):
             min_kelvin=features.get("min_kelvin"),
             min_ext_mz_firmware=features.get("min_ext_mz_firmware"),
             min_ext_mz_firmware_components=features.get(
-                "min_ext_mz_firmware_components"),
-            temperature_range=features.get("temperature_range")
+                "min_ext_mz_firmware_components"
+            ),
+            temperature_range=features.get("temperature_range"),
         )
     return products_dict
 
