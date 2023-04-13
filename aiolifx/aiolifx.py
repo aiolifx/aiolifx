@@ -23,8 +23,8 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 # IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 import asyncio as aio
+import loggin
 from typing import Any, Coroutine, Set
-
 from .message import BROADCAST_MAC, BROADCAST_SOURCE_ID
 from .msgtypes import *
 from .products import *
@@ -50,6 +50,7 @@ DEFAULT_ATTEMPTS = 3  # How many time shou;d we try to send to the bulb`
 DISCOVERY_INTERVAL = 180
 DISCOVERY_STEP = 5
 MAX_UNSIGNED_16_BIT_INTEGER_VALUE = int("0xFFFF", 16)
+_LOGGER = logging.getLogger(__name__)
 
 
 def _create_background_task(coro: Coroutine) -> None:
@@ -167,6 +168,25 @@ class Device(aio.DatagramProtocol):
         """Method run when the connection to the lamp is established"""
         self.transport = transport
         self.register()
+
+    def error_received(self, exc: Exception) -> None:
+        """Method run when an error is received from the device.
+
+        This method is called in rare conditions, when the transport (e.g. UDP)
+        detects that a datagram could not be delivered to its recipient.
+        In many conditions though, undeliverable datagrams will be silently dropped.
+        """
+        _LOGGER.debug("%s: Error received: %s", self.ip_addr, exc)
+        # Clear the message queue since we know they are not going to be answered
+        # and there is no point in waiting for them
+        for entry in self.message.values():
+            response_type, myevent, callb = entry
+            if response_type != Acknowledgement:
+                if callb:
+                    callb(self, None)
+                if myevent:
+                    myevent.set()
+        self.message.clear()
 
     def datagram_received(self, data, addr):
         """Method run when data is received from the device
