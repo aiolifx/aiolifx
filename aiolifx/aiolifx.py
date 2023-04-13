@@ -846,7 +846,7 @@ class Device(aio.DatagramProtocol):
         """Convenience to string method."""
         s = "Vendor: {}\n".format(self.vendor)
         s += indent + "Product: {}\n".format(
-            (self.product and product_map[self.product]) or "Unknown"
+            (self.product and products_dict[self.product]) or "Unknown"
         )
         s += indent + "Version: {}\n".format(self.version)
         return s
@@ -1189,7 +1189,7 @@ class Light(Device):
         """Convenience method to start or stop the Move firmware effect on multizone devices.
 
         Compatible devices include LIFX Z, Lightstrip and Beam and can be identified by
-        checking if features_map[device.product]['multizone'] is True. Multizone devices
+        checking if products_dict[device.product].multizone is True. Multizone devices
         only have one firmware effect named "MOVE". The effect can be started and stopped
         without the device being powered on. The effect will not be visible if the
         device is a single uniform color.
@@ -1474,7 +1474,7 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if features_map[self.product]["hev"] is True:
+        if products_dict[self.product].hev is True:
             self.req_with_resp(GetHevCycle, StateHevCycle, callb=callb)
 
     def resp_set_hevcycle(self, resp):
@@ -1506,7 +1506,7 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if features_map[self.product]["hev"] is True:
+        if products_dict[self.product].hev is True:
             if rapid:
                 self.fire_and_forget(
                     SetHevCycle,
@@ -1535,7 +1535,7 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if features_map[self.product]["hev"] is True:
+        if products_dict[self.product].hev is True:
             self.req_with_resp(
                 GetHevCycleConfiguration, StateHevCycleConfiguration, callb=callb
             )
@@ -1568,7 +1568,7 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if features_map[self.product]["hev"] is True:
+        if products_dict[self.product].hev is True:
             if rapid:
                 self.fire_and_forget(
                     SetHevCycleConfiguration,
@@ -1598,7 +1598,7 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
-        if features_map[self.product]["hev"] is True:
+        if products_dict[self.product].hev is True:
             self.req_with_resp(
                 GetLastHevCycleResult, StateLastHevCycleResult, callb=callb
             )

@@ -106,6 +106,13 @@ Other things worth noting:
     - Unlike in lifxlan, set_waveform takes a dictionary with the right
       keys instead of all those parameters
 
+# Development
+To develop locally, the easiest way is to from the root directory run:
+
+```bash
+pip3 install . && python3 ./examples/lifx-cli.py
+```
+
 # Thanks
 
 Thanks to Anders Melchiorsen and Avi Miller for their essential contributions
