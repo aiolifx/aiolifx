@@ -503,7 +503,82 @@ def unpack_lifx_message(packed_message):
         message = StateRPower(
             target_addr, source_id, seq_num, payload, ack_requested, response_requested
         )
+    
+    elif message_type == MSG_IDS[StateButton]: # 907
+        count = struct.unpack('B', payload_str[:1])[0]
+        index = struct.unpack('B', payload_str[1:2])[0]
+        buttons_count = struct.unpack('B', payload_str[2:3])[0]
 
+        # always an array of 8 buttons
+        buttons = []
+        for i in range(8):
+            # each button is 101 bytes
+            button_bytes = payload_str[3 + (i * 101) : 104 + (i * 101)]
+            actions_count = struct.unpack('B', button_bytes[:1])[0]
+            # each button has 5 actions, size 100 bytes each
+            button_actions = []
+            for j in range(5):
+                button_action_bytes = button_bytes[1 + (j * 20) : 21 + (j * 20)]
+
+                button_gesture = struct.unpack('H', button_action_bytes[:2])[0]
+                button_gesture_enum = ButtonGesture(button_gesture)
+
+                button_target_type = struct.unpack('H', button_action_bytes[2:4])[0]
+                button_target_type_enum = ButtonTargetType(button_target_type)
+               
+                button_target = button_action_bytes[4:]
+                button_target_properties = {
+                    "type": button_target_type_enum,
+                }
+                if(button_target_type_enum == ButtonTargetType.RELAYS):
+                    button_target_properties["relays_count"] = struct.unpack('B', button_target[:1])[0]
+                    button_target_properties["relays"] = struct.unpack('B' * 15, button_target[1:])
+                elif(button_target_type_enum == ButtonTargetType.DEVICE):
+                    button_target_properties["serial"] = struct.unpack('B' * 6, button_target[:6])
+                    button_target_properties["reserved"] = struct.unpack('B' * 10, button_target[6:])
+                elif(button_target_type_enum == ButtonTargetType.LOCATION):
+                    button_target_properties["location_id"] = struct.unpack('B' * 16, button_target[:16])
+                elif(button_target_type_enum == ButtonTargetType.GROUP):
+                    button_target_properties["group_id"] = struct.unpack('B' * 16, button_target[:16])
+                elif(button_target_type_enum == ButtonTargetType.SCENE):
+                    button_target_properties["scene_id"] = struct.unpack('B' * 16, button_target[:16])
+                elif(button_target_type_enum == ButtonTargetType.DEVICE_RELAYS):
+                    button_target_properties["serial"] = struct.unpack('B' * 6, button_target[:6])
+                    button_target_properties["relays_count"] = struct.unpack('B', button_target[6:7])[0]
+                    button_target_properties["relays"] = struct.unpack('B' * 9, button_target[7:])
+                button_action = {
+                    "button_gesture": button_gesture_enum,
+                    "button_target_type": button_target_type_enum,
+                    "button_target": button_target_properties,
+                }
+                button_actions.append(button_action)
+            button = {
+                "actions_count": actions_count,
+                "button_actions": button_actions,
+            }
+            buttons.append(button)
+
+        payload = {"count": count, "index": index, "buttons_count": buttons_count, "buttons": buttons}
+        message = StateButton(
+            target_addr, source_id, seq_num, payload, ack_requested, response_requested
+        )
+
+    elif message_type == MSG_IDS[StateButtonConfig]: # 911
+        haptic_duration_ms = struct.unpack('B', payload_str[:1])[0]
+
+        backlight_on_color_values = payload_str[1:9]
+        backlight_on_color = getBacklightColor(backlight_on_color_values)
+    
+        backlight_off_color_values = payload_str[9:17]
+        backlight_off_color = getBacklightColor(backlight_off_color_values)
+        
+        payload = { 
+            "haptic_duration_ms": haptic_duration_ms,
+            "backlight_on_color": backlight_on_color,
+            "backlight_off_color": backlight_off_color
+        }
+        
+        message = StateButtonConfig(target_addr, source_id, seq_num, payload, ack_requested, response_requested)
     else:
         message = Message(
             message_type,
@@ -525,3 +600,34 @@ def unpack_lifx_message(packed_message):
     message.packed_message = packed_message
 
     return message
+
+class ButtonGesture(Enum):
+    NONE = 0
+    PRESS = 1
+    HOLD = 2
+    PRESS_PRESS = 3
+    PRESS_HOLD = 4
+    HOLD_HOLD = 5
+
+class ButtonTargetType(Enum):
+    RESERVED = 0
+    RESERVED_1 = 1
+    RELAYS = 2
+    DEVICE = 3
+    LOCATION = 4
+    GROUP = 5
+    SCENE = 6
+    DEVICE_RELAYS = 7
+
+def getBacklightColor(payload_str):
+    hue = struct.unpack('H', payload_str[:2])[0]
+    saturation = struct.unpack('H', payload_str[2:4])[0]
+    brightness = struct.unpack('H', payload_str[4:6])[0]
+    kelvin = struct.unpack('H', payload_str[6:8])[0]
+
+    return {
+        "hue": hue,
+        "saturation": saturation,
+        "brightness": brightness,
+        "kelvin": kelvin,
+    }
