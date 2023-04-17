@@ -925,6 +925,7 @@ class Light(Device):
         self.relays_power = [None, None, None, None]
         # Only used by a Lifx switch. Will be populated with an object containing the `haptic_duration_ms`, `backlight_on_color` and `backlight_off_color`
         self.button_config = None
+        # Only used by a Lifx switch. Will be populated with an object containing `count`, `index`, `buttons_count` and `buttons`
         self.button = None
 
     def get_power(self, callb=None):

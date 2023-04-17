@@ -31,8 +31,6 @@ from enum import Enum
 
 
 # Simple bulb control frpm console
-
-
 class bulbs:
     """A simple class with a register and  unregister methods"""
 
@@ -407,13 +405,22 @@ def readin():
                 elif int(lov[0]) == BulbOptions.BUTTON_CONFIG.value:
                     if alix.aiolifx.features_map[MyBulbs.boi.product]["relays"] is True:
                         def callback(x, buttonConfig): 
+                            # Switch returns the kelvin value as a byte, so we need to convert it to a kelvin value
+                            # The kelvin value is reversed (higher byte value = lower kelvin).
+                            # Below 10495 and above 56574 are outside the range of supported Kelvin values
                             def get_kelvin(byte_value):
-                                if byte_value <= 10495:
-                                    return 9000
-                                elif byte_value <= 56574:
-                                    return int(round(9000 - ((byte_value - 10495) / 46080) * 7500))
+                                MIN_KELVIN_VALUE = 1500
+                                MAX_KELVIN_VALUE = 9000
+                                KELVIN_RANGE = MAX_KELVIN_VALUE - MIN_KELVIN_VALUE
+                                MIN_BYTE_VALUE = 10495 # 9000 Kelvin
+                                MAX_BYTE_VALUE = 56575 # 1500 Kelvin
+                                BYTE_RANGE = MAX_BYTE_VALUE - MIN_BYTE_VALUE 
+                                if byte_value <= MIN_BYTE_VALUE:
+                                    return MAX_KELVIN_VALUE
+                                elif byte_value < MAX_BYTE_VALUE:
+                                    return int(round(MAX_KELVIN_VALUE - ((byte_value - MIN_BYTE_VALUE) / BYTE_RANGE) * KELVIN_RANGE))
                                 else:
-                                    return 1500
+                                    return MIN_KELVIN_VALUE
                             backlight_on_color = {
                                 'hue': int(round(360 * (buttonConfig.backlight_on_color['hue'] / 65535))),
                                 'saturation': int(round(100 * (buttonConfig.backlight_on_color['saturation'] / 65535))),
@@ -432,6 +439,7 @@ def readin():
                             f"Haptic Duration (ms): {buttonConfig.haptic_duration_ms}\nBacklight on color: {backlight_on_color_str}\nBacklight off color: {backlight_off_color_str}")
                         if(len(lov) == 10):
                             haptic_duration_ms = int(lov[1])
+                            # Switch accepts the actual kelvin value as the input
                             def get_kelvin(input):
                                 if input < 1500 or input > 9000:
                                     print("Kelvin must be between 1500 and 9000")
@@ -519,8 +527,8 @@ def readin():
             )
         if alix.aiolifx.products_dict[MyBulbs.boi.product].relays is True:
             print(f"\t[{BulbOptions.RELAYS.value}]\tRelays; optionally followed by relay number (beginning at 1); optionally followed by `on` or `off` to set the value")
-            print(f"\t[{BulbOptions.BUTTON.value}]\tButton (if hue is set, kelvin is ignored); in the format <haptic_duration_ms> <backlight_on_color_hue> (0-360) <backlight_on_color_saturation> (0-100) <backlight_on_color_brightness> (0-100) <backlight_on_color_kelvin> (2500-9000) <backlight_off_color_hue> (0-360) <backlight_off_color_saturation> (0-100) <backlight_off_color_brightness> (0-100) <backlight_off_color_kelvin> (2500-9000)")
-            print(f"\t[{BulbOptions.BUTTON_CONFIG.value}]\tButton Config")
+            print(f"\t[{BulbOptions.BUTTON.value}]\tButton")
+            print(f"\t[{BulbOptions.BUTTON_CONFIG.value}]\tButton Config. Optionally followed by <haptic_duration_ms> <backlight_on_color_hue> (0-360; if not 0, kelvin is ignored) <backlight_on_color_saturation> (0-100) <backlight_on_color_brightness> (0-100) <backlight_on_color_kelvin> (2500-9000) <backlight_off_color_hue> (0-360; if not 0, kelvin is ignored) <backlight_off_color_saturation> (0-100) <backlight_off_color_brightness> (0-100) <backlight_off_color_kelvin> (2500-9000)")
         print(
             f"\t[{BulbOptions.REBOOT.value}]\tReboot the bulb (indicated by a reboot blink)"
         )

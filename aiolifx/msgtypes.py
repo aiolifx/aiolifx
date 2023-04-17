@@ -1955,9 +1955,6 @@ class SetButton(Message):
         ack_requested=False,
         response_requested=False,
     ):
-        self.index = payload["index"]
-        self.buttonsCount = payload["buttonsCount"]
-        self.buttons = payload["buttons"]
         super(SetButton, self).__init__(
             MSG_IDS[SetButton],
             target_addr,
@@ -1966,18 +1963,10 @@ class SetButton(Message):
             ack_requested,
             response_requested,
         )
+        raise Exception("Not implemented")
 
     def get_payload(self):
-        self.payload_fields.append(("Index", self.index))
-        self.payload_fields.append(("ButtonsCount", self.buttonsCount))
-        self.payload_fields.append(("Buttons", self.buttons))
-        index = little_endian(bitstring.pack("uint:8", self.index))
-        buttonsCount = little_endian(bitstring.pack("uint:8", self.buttonsCount))
-        #use the Button class to pack the buttons
-        buttons = b"".join(button.get_payload() for button in self.buttons)
-
-        payload = index + buttonsCount + buttons
-        return payload
+        raise Exception("Not implemented")
 
 class StateButton(Message):
     def __init__(
@@ -2049,16 +2038,13 @@ class SetButtonConfig(Message):
         self.payload_fields.append(("backlight_off_color", self.backlight_off_color))
         haptic_duration_ms = little_endian(bitstring.pack("uint:16", self.haptic_duration_ms))
 
-        # Create variables for each of the fields in the ButtonBacklightHsbk type
         hue = self.backlight_on_color["hue"]
         saturation = self.backlight_on_color["saturation"]
         brightness = self.backlight_on_color["brightness"]
         kelvin = self.backlight_on_color["kelvin"]
 
-        # Pack the fields into a binary string using the format string "<HHHH"
         backlight_on_color = little_endian(bitstring.pack("uint:16", hue)) + little_endian(bitstring.pack("uint:16", saturation)) + little_endian(bitstring.pack("uint:16", brightness)) + little_endian(bitstring.pack("uint:16", kelvin))
 
-        # Repeat the process for the backlightOffColor field
         hue = self.backlight_off_color["hue"]
         saturation = self.backlight_off_color["saturation"]
         brightness = self.backlight_off_color["brightness"]
