@@ -89,8 +89,7 @@ def readin():
                     MyBulbs.boi = None
                 elif int(lov[0]) == BulbOptions.POWER.value:
                     if len(lov) > 1:
-                        MyBulbs.boi.set_power(
-                            lov[1].lower() in ["1", "on", "true"])
+                        MyBulbs.boi.set_power(lov[1].lower() in ["1", "on", "true"])
                         MyBulbs.boi = None
                     else:
                         print("Error: For power you must indicate on or off\n")
@@ -101,8 +100,7 @@ def readin():
                                 [
                                     58275,
                                     0,
-                                    int(round(
-                                        (float(lov[1]) * 65365.0) / 100.0)),
+                                    int(round((float(lov[1]) * 65365.0) / 100.0)),
                                     int(round(float(lov[2]))),
                                 ]
                             )
@@ -121,12 +119,9 @@ def readin():
                         try:
                             MyBulbs.boi.set_color(
                                 [
-                                    int(round(
-                                        (float(lov[1]) * 65535.0) / 360.0)),
-                                    int(round(
-                                        (float(lov[2]) * 65535.0) / 100.0)),
-                                    int(round(
-                                        (float(lov[3]) * 65535.0) / 100.0)),
+                                    int(round((float(lov[1]) * 65535.0) / 360.0)),
+                                    int(round((float(lov[2]) * 65535.0) / 100.0)),
+                                    int(round((float(lov[3]) * 65535.0) / 100.0)),
                                     3500,
                                 ]
                             )
@@ -165,12 +160,9 @@ def readin():
                             print(
                                 "Sending {}".format(
                                     [
-                                        int(round(
-                                            (float(lov[1]) * 65535.0) / 360.0)),
-                                        int(round(
-                                            (float(lov[2]) * 65535.0) / 100.0)),
-                                        int(round(
-                                            (float(lov[3]) * 65535.0) / 100.0)),
+                                        int(round((float(lov[1]) * 65535.0) / 360.0)),
+                                        int(round((float(lov[2]) * 65535.0) / 100.0)),
+                                        int(round((float(lov[3]) * 65535.0) / 100.0)),
                                         3500,
                                     ]
                                 )
@@ -178,12 +170,9 @@ def readin():
                             MyBulbs.boi.set_waveform(
                                 {
                                     "color": [
-                                        int(round(
-                                            (float(lov[1]) * 65535.0) / 360.0)),
-                                        int(round(
-                                            (float(lov[2]) * 65535.0) / 100.0)),
-                                        int(round(
-                                            (float(lov[3]) * 65535.0) / 100.0)),
+                                        int(round((float(lov[1]) * 65535.0) / 360.0)),
+                                        int(round((float(lov[2]) * 65535.0) / 100.0)),
+                                        int(round((float(lov[3]) * 65535.0) / 100.0)),
                                         3500,
                                     ],
                                     "transient": 1,
@@ -226,8 +215,7 @@ def readin():
                             duration = int(lov[1])
                             enable = duration >= 0
                             if enable:
-                                print(
-                                    f"Running HEV cycle for {duration} second(s)")
+                                print(f"Running HEV cycle for {duration} second(s)")
                             else:
                                 print(f"Aborting HEV cycle")
                                 duration = 0
@@ -306,8 +294,7 @@ def readin():
                             direction = str(lov[2])
 
                             if effect.lower() not in ["off", "move"]:
-                                print(
-                                    "Error: effect parameter must be 'off' or 'move'")
+                                print("Error: effect parameter must be 'off' or 'move'")
                                 can_set = False
                             if direction.lower() not in ["left", "right"]:
                                 print(
@@ -337,8 +324,12 @@ def readin():
                         MyBulbs.boi = None
 
                 elif int(lov[0]) == BulbOptions.RELAYS.value:
-                    def callback(x, statePower): return print(
-                        f"Relay {statePower.relay_index + 1}: {'On' if statePower.level == 65535 else 'Off'}")  # +1 to use 1-indexing
+
+                    def callback(x, statePower):
+                        return print(
+                            f"Relay {statePower.relay_index + 1}: {'On' if statePower.level == 65535 else 'Off'}"
+                        )  # +1 to use 1-indexing
+
                     if alix.aiolifx.features_map[MyBulbs.boi.product]["relays"] is True:
                         # If user provides relay index as second param AND a third param off or on
                         if len(lov) == 3:
@@ -347,16 +338,19 @@ def readin():
                             on = [True, 1, "on"]
                             off = [False, 0, "off"]
                             set_power = partial(
-                                MyBulbs.boi.set_rpower, relay_index, callb=callback)
+                                MyBulbs.boi.set_rpower, relay_index, callb=callback
+                            )
                             if lov[2] in on:
                                 set_power(True)
                             elif lov[2] in off:
                                 set_power(False)
                             else:
                                 values_list = ", ".join(
-                                    [str(x) for lst in [on, off] for x in lst])
+                                    [str(x) for lst in [on, off] for x in lst]
+                                )
                                 print(
-                                    f"Argument not known. Use one of these values: {values_list}")
+                                    f"Argument not known. Use one of these values: {values_list}"
+                                )
                         # User has provided a relay index but isn't trying to set the value
                         elif len(lov) == 2:
                             # -1 to use 1-indexing
@@ -366,12 +360,13 @@ def readin():
                             MyBulbs.boi.get_rpower(callb=callback)
                     else:
                         print(
-                                "This device isn't a switch and therefore doesn't have relays"
+                            "This device isn't a switch and therefore doesn't have relays"
                         )
 
                 elif int(lov[0]) == BulbOptions.BUTTON.value:
                     if alix.aiolifx.features_map[MyBulbs.boi.product]["relays"] is True:
-                        def callback(x, buttonResponse): 
+
+                        def callback(x, buttonResponse):
                             def get_action_name(action_index):
                                 if action_index == 0:
                                     return "Single Press"
@@ -382,29 +377,36 @@ def readin():
                                 else:
                                     # To present 1-indexing to users
                                     return f"Action {action_index + 1}"
-                            
 
                             buttons_str = ""
-                            for button_index, button in enumerate(buttonResponse.buttons[:buttonResponse.buttons_count]):
+                            for button_index, button in enumerate(
+                                buttonResponse.buttons[: buttonResponse.buttons_count]
+                            ):
                                 buttons_str += f"Button {button_index + 1}:\n"
                                 # At the moment, LIFX app only supports single, double and long press
                                 MAX_ACTIONS = 3
-                                for action_index, action in enumerate(button["button_actions"][:MAX_ACTIONS]):
-                                    buttons_str += (f"\t{get_action_name(action_index)}\n"
-                                    + f"\t\tGesture: {action['button_gesture']}\n"
-                                    + f"\t\t{action['button_target_type']}\n"
-                                    + f"\t\t{action['button_target']}\n")
+                                for action_index, action in enumerate(
+                                    button["button_actions"][:MAX_ACTIONS]
+                                ):
+                                    buttons_str += (
+                                        f"\t{get_action_name(action_index)}\n"
+                                        + f"\t\tGesture: {action['button_gesture']}\n"
+                                        + f"\t\t{action['button_target_type']}\n"
+                                        + f"\t\t{action['button_target']}\n"
+                                    )
                             return print(
                                 f"Count: {buttonResponse.count}\n"
                                 + f"Index: {buttonResponse.index}\n"
                                 + f"Buttons Count: {buttonResponse.buttons_count}\n"
                                 + f"Buttons:\n{buttons_str}"
                             )
+
                         MyBulbs.boi.get_button(callback)
 
                 elif int(lov[0]) == BulbOptions.BUTTON_CONFIG.value:
                     if alix.aiolifx.features_map[MyBulbs.boi.product]["relays"] is True:
-                        def callback(x, buttonConfig): 
+
+                        def callback(x, buttonConfig):
                             # Switch returns the kelvin value as a byte, so we need to convert it to a kelvin value
                             # The kelvin value is reversed (higher byte value = lower kelvin).
                             # Below 10495 and above 56574 are outside the range of supported Kelvin values
@@ -412,57 +414,130 @@ def readin():
                                 MIN_KELVIN_VALUE = 1500
                                 MAX_KELVIN_VALUE = 9000
                                 KELVIN_RANGE = MAX_KELVIN_VALUE - MIN_KELVIN_VALUE
-                                MIN_BYTE_VALUE = 10495 # 9000 Kelvin
-                                MAX_BYTE_VALUE = 56575 # 1500 Kelvin
-                                BYTE_RANGE = MAX_BYTE_VALUE - MIN_BYTE_VALUE 
+                                MIN_BYTE_VALUE = 10495  # 9000 Kelvin
+                                MAX_BYTE_VALUE = 56575  # 1500 Kelvin
+                                BYTE_RANGE = MAX_BYTE_VALUE - MIN_BYTE_VALUE
                                 if byte_value <= MIN_BYTE_VALUE:
                                     return MAX_KELVIN_VALUE
                                 elif byte_value < MAX_BYTE_VALUE:
-                                    return int(round(MAX_KELVIN_VALUE - ((byte_value - MIN_BYTE_VALUE) / BYTE_RANGE) * KELVIN_RANGE))
+                                    return int(
+                                        round(
+                                            MAX_KELVIN_VALUE
+                                            - (
+                                                (byte_value - MIN_BYTE_VALUE)
+                                                / BYTE_RANGE
+                                            )
+                                            * KELVIN_RANGE
+                                        )
+                                    )
                                 else:
                                     return MIN_KELVIN_VALUE
+
                             backlight_on_color = {
-                                'hue': int(round(360 * (buttonConfig.backlight_on_color['hue'] / 65535))),
-                                'saturation': int(round(100 * (buttonConfig.backlight_on_color['saturation'] / 65535))),
-                                'brightness': int(round(100 * (buttonConfig.backlight_on_color['brightness'] / 65535))),
-                                'kelvin': get_kelvin(buttonConfig.backlight_on_color['kelvin'])
+                                "hue": int(
+                                    round(
+                                        360
+                                        * (
+                                            buttonConfig.backlight_on_color["hue"]
+                                            / 65535
+                                        )
+                                    )
+                                ),
+                                "saturation": int(
+                                    round(
+                                        100
+                                        * (
+                                            buttonConfig.backlight_on_color[
+                                                "saturation"
+                                            ]
+                                            / 65535
+                                        )
+                                    )
+                                ),
+                                "brightness": int(
+                                    round(
+                                        100
+                                        * (
+                                            buttonConfig.backlight_on_color[
+                                                "brightness"
+                                            ]
+                                            / 65535
+                                        )
+                                    )
+                                ),
+                                "kelvin": get_kelvin(
+                                    buttonConfig.backlight_on_color["kelvin"]
+                                ),
                             }
                             backlight_on_color_str = f"hue: {backlight_on_color['hue']}, saturation: {backlight_on_color['saturation']}, brightness: {backlight_on_color['brightness']}, kelvin: {backlight_on_color['kelvin']}"
                             backlight_off_color = {
-                                'hue': int(round(360 * (buttonConfig.backlight_off_color['hue'] / 65535))),
-                                'saturation': int(round(100 * (buttonConfig.backlight_off_color['saturation'] / 65535))),
-                                'brightness': int(round(100 * (buttonConfig.backlight_off_color['brightness'] / 65535))),
-                                'kelvin': get_kelvin(buttonConfig.backlight_off_color['kelvin'])
+                                "hue": int(
+                                    round(
+                                        360
+                                        * (
+                                            buttonConfig.backlight_off_color["hue"]
+                                            / 65535
+                                        )
+                                    )
+                                ),
+                                "saturation": int(
+                                    round(
+                                        100
+                                        * (
+                                            buttonConfig.backlight_off_color[
+                                                "saturation"
+                                            ]
+                                            / 65535
+                                        )
+                                    )
+                                ),
+                                "brightness": int(
+                                    round(
+                                        100
+                                        * (
+                                            buttonConfig.backlight_off_color[
+                                                "brightness"
+                                            ]
+                                            / 65535
+                                        )
+                                    )
+                                ),
+                                "kelvin": get_kelvin(
+                                    buttonConfig.backlight_off_color["kelvin"]
+                                ),
                             }
                             backlight_off_color_str = f"hue: {backlight_off_color['hue']}, saturation: {backlight_off_color['saturation']}, brightness: {backlight_off_color['brightness']}, kelvin: {backlight_off_color['kelvin']}"
                             return print(
-                            f"Haptic Duration (ms): {buttonConfig.haptic_duration_ms}\nBacklight on color: {backlight_on_color_str}\nBacklight off color: {backlight_off_color_str}")
-                        if(len(lov) == 10):
+                                f"Haptic Duration (ms): {buttonConfig.haptic_duration_ms}\nBacklight on color: {backlight_on_color_str}\nBacklight off color: {backlight_off_color_str}"
+                            )
+
+                        if len(lov) == 10:
                             haptic_duration_ms = int(lov[1])
+
                             # Switch accepts the actual kelvin value as the input
                             def get_kelvin(input):
                                 if input < 1500 or input > 9000:
                                     print("Kelvin must be between 1500 and 9000")
                                     return 1500
                                 return input
-                            backlight_on_color = {
-                                'hue': int(round(65535 * (int(lov[2]) / 360))),
-                                'saturation': int(round(65535 * (int(lov[3]) / 100))),
-                                'brightness': int(round(65535 * (int(lov[4]) / 100))),
-                                'kelvin': get_kelvin(int(lov[5]))
 
+                            backlight_on_color = {
+                                "hue": int(round(65535 * (int(lov[2]) / 360))),
+                                "saturation": int(round(65535 * (int(lov[3]) / 100))),
+                                "brightness": int(round(65535 * (int(lov[4]) / 100))),
+                                "kelvin": get_kelvin(int(lov[5])),
                             }
                             backlight_off_color = {
-                                'hue': int(round(65535 * (int(lov[6]) / 360))),
-                                'saturation': int(round(65535 * (int(lov[7]) / 100))),
-                                'brightness': int(round(65535 * (int(lov[8]) / 100))),
-                                'kelvin': get_kelvin(int(lov[9]))
+                                "hue": int(round(65535 * (int(lov[6]) / 360))),
+                                "saturation": int(round(65535 * (int(lov[7]) / 100))),
+                                "brightness": int(round(65535 * (int(lov[8]) / 100))),
+                                "kelvin": get_kelvin(int(lov[9])),
                             }
                             MyBulbs.boi.set_button_config(
                                 haptic_duration_ms,
                                 backlight_on_color,
                                 backlight_off_color,
-                                callback
+                                callback,
                             )
                         elif len(lov) > 1:
                             print(
@@ -470,12 +545,6 @@ def readin():
                             )
                         else:
                             MyBulbs.boi.get_button_config(callback)
-
-                        # MyBulbs.boi.set_button_config(
-                        #     30,
-                        #     {'hue': 0, 'saturation': 65280, 'brightness': 65535, 'kelvin': 44287},{'hue': 50688, 'saturation': 65457, 'brightness': 65535, 'kelvin': 44287}
-                        # )
-                        
 
                 elif int(lov[0]) == 99:
                     # Reboot bulb
@@ -526,9 +595,13 @@ def readin():
                 f"\t[{BulbOptions.HEV_CONFIGURATION_OR_FIRMWARE_EFFECT_START_STOP.value}]\tStart or stop firmware effect ([off/move] [right|left])"
             )
         if alix.aiolifx.products_dict[MyBulbs.boi.product].relays is True:
-            print(f"\t[{BulbOptions.RELAYS.value}]\tRelays; optionally followed by relay number (beginning at 1); optionally followed by `on` or `off` to set the value")
+            print(
+                f"\t[{BulbOptions.RELAYS.value}]\tRelays; optionally followed by relay number (beginning at 1); optionally followed by `on` or `off` to set the value"
+            )
             print(f"\t[{BulbOptions.BUTTON.value}]\tButton")
-            print(f"\t[{BulbOptions.BUTTON_CONFIG.value}]\tButton Config. Optionally followed by <haptic_duration_ms> <backlight_on_color_hue> (0-360; if not 0, kelvin is ignored) <backlight_on_color_saturation> (0-100) <backlight_on_color_brightness> (0-100) <backlight_on_color_kelvin> (2500-9000) <backlight_off_color_hue> (0-360; if not 0, kelvin is ignored) <backlight_off_color_saturation> (0-100) <backlight_off_color_brightness> (0-100) <backlight_off_color_kelvin> (2500-9000)")
+            print(
+                f"\t[{BulbOptions.BUTTON_CONFIG.value}]\tButton Config. Optionally followed by <haptic_duration_ms> <backlight_on_color_hue> (0-360; if not 0, kelvin is ignored) <backlight_on_color_saturation> (0-100) <backlight_on_color_brightness> (0-100) <backlight_on_color_kelvin> (2500-9000) <backlight_off_color_hue> (0-360; if not 0, kelvin is ignored) <backlight_off_color_saturation> (0-100) <backlight_off_color_brightness> (0-100) <backlight_off_color_kelvin> (2500-9000)"
+            )
         print(
             f"\t[{BulbOptions.REBOOT.value}]\tReboot the bulb (indicated by a reboot blink)"
         )

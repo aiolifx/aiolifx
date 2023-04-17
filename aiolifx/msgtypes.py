@@ -1923,8 +1923,10 @@ class StateRPower(Message):
         payload = relay_index + level
         return payload
 
+
 ##### SWITCH BUTTON MESSAGES #####
 ##### https://github.com/LIFX/public-protocol/blob/main/protocol.yml#L472-L541 #####
+
 
 class GetButton(Message):
     def __init__(
@@ -1944,6 +1946,7 @@ class GetButton(Message):
             ack_requested,
             response_requested,
         )
+
 
 class SetButton(Message):
     def __init__(
@@ -1968,6 +1971,7 @@ class SetButton(Message):
     def get_payload(self):
         raise Exception("Not implemented")
 
+
 class StateButton(Message):
     def __init__(
         self,
@@ -1991,6 +1995,7 @@ class StateButton(Message):
             response_requested,
         )
 
+
 class GetButtonConfig(Message):
     def __init__(
         self,
@@ -2009,6 +2014,7 @@ class GetButtonConfig(Message):
             ack_requested,
             response_requested,
         )
+
 
 class SetButtonConfig(Message):
     def __init__(
@@ -2036,24 +2042,37 @@ class SetButtonConfig(Message):
         self.payload_fields.append(("haptic_duration_ms", self.haptic_duration_ms))
         self.payload_fields.append(("backlight_on_color", self.backlight_on_color))
         self.payload_fields.append(("backlight_off_color", self.backlight_off_color))
-        haptic_duration_ms = little_endian(bitstring.pack("uint:16", self.haptic_duration_ms))
+        haptic_duration_ms = little_endian(
+            bitstring.pack("uint:16", self.haptic_duration_ms)
+        )
 
         hue = self.backlight_on_color["hue"]
         saturation = self.backlight_on_color["saturation"]
         brightness = self.backlight_on_color["brightness"]
         kelvin = self.backlight_on_color["kelvin"]
 
-        backlight_on_color = little_endian(bitstring.pack("uint:16", hue)) + little_endian(bitstring.pack("uint:16", saturation)) + little_endian(bitstring.pack("uint:16", brightness)) + little_endian(bitstring.pack("uint:16", kelvin))
+        backlight_on_color = (
+            little_endian(bitstring.pack("uint:16", hue))
+            + little_endian(bitstring.pack("uint:16", saturation))
+            + little_endian(bitstring.pack("uint:16", brightness))
+            + little_endian(bitstring.pack("uint:16", kelvin))
+        )
 
         hue = self.backlight_off_color["hue"]
         saturation = self.backlight_off_color["saturation"]
         brightness = self.backlight_off_color["brightness"]
         kelvin = self.backlight_off_color["kelvin"]
 
-        backlight_off_color = little_endian(bitstring.pack("uint:16", hue)) + little_endian(bitstring.pack("uint:16", saturation)) + little_endian(bitstring.pack("uint:16", brightness)) + little_endian(bitstring.pack("uint:16", kelvin))
+        backlight_off_color = (
+            little_endian(bitstring.pack("uint:16", hue))
+            + little_endian(bitstring.pack("uint:16", saturation))
+            + little_endian(bitstring.pack("uint:16", brightness))
+            + little_endian(bitstring.pack("uint:16", kelvin))
+        )
 
         payload = haptic_duration_ms + backlight_on_color + backlight_off_color
         return payload
+
 
 class StateButtonConfig(Message):
     def __init__(
@@ -2076,7 +2095,8 @@ class StateButtonConfig(Message):
             ack_requested,
             response_requested,
         )
-    
+
+
 MSG_IDS = {
     GetService: 2,
     StateService: 3,
@@ -2165,6 +2185,7 @@ LAST_HEV_CYCLE_RESULT = {
     255: "NONE",
 }
 
+
 class Button:
     def __init__(self, data):
         self.actions = []
@@ -2178,6 +2199,7 @@ class Button:
             payload += action.get_payload()
         return payload
 
+
 class ButtonAction:
     def __init__(self, data):
         self.gesture = ButtonGesture(data[0] + data[1] * 256)
@@ -2190,7 +2212,7 @@ class ButtonAction:
             self.target = ButtonTargetDeviceRelays(data[4:])
         else:
             self.target = None
-    
+
     def get_payload(self):
         payload = little_endian(bitstring.pack("uint:16", self.gesture.value))
         payload += little_endian(bitstring.pack("uint:16", self.target_type.value))
@@ -2208,21 +2230,25 @@ class ButtonAction:
                 payload += little_endian(bitstring.pack("uint:8", relay))
         return payload
 
+
 class ButtonTargetRelays:
     def __init__(self, data):
         self.relays_count = data[0]
         self.relays = data[1 : 1 + self.relays_count]
+
 
 class ButtonTargetDevice:
     def __init__(self, data):
         self.serial = data[0:6]
         self.reserved = data[6:16]
 
+
 class ButtonTargetDeviceRelays:
     def __init__(self, data):
         self.serial = data[0:6]
         self.relays_count = data[6]
         self.relays = data[7 : 7 + self.relays_count]
+
 
 class ButtonGesture(Enum):
     PRESS = 1
@@ -2231,6 +2257,7 @@ class ButtonGesture(Enum):
     PRESS_HOLD = 4
     HOLD_HOLD = 5
 
+
 class ButtonTargetType(Enum):
     RELAYS = 2
     DEVICE = 3
@@ -2238,6 +2265,7 @@ class ButtonTargetType(Enum):
     GROUP = 5
     SCENE = 6
     DEVICE_RELAYS = 7
+
 
 class MultiZoneEffectType(Enum):
     OFF = 0

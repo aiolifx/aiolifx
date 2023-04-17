@@ -1785,11 +1785,13 @@ class Light(Device):
         else:
             mycallb = lambda x, y: mypartial(y)
 
-        payload = { }
+        payload = {}
         response = self.req_with_resp(GetButton, StateButton, payload, callb=mycallb)
 
     def set_button(self, callb=None, rapid=False):
-        raise Exception("SetButton isn't yet implemented as you can only set button actions to the same values as the LIFX app (ie you can't add custom callbacks), making it not that useful. Feel free to implement if you need this :)")
+        raise Exception(
+            "SetButton isn't yet implemented as you can only set button actions to the same values as the LIFX app (ie you can't add custom callbacks), making it not that useful. Feel free to implement if you need this :)"
+        )
         """ Sets button
 
             :param callb: Callable to be used when the response is received.
@@ -1800,14 +1802,13 @@ class Light(Device):
             :rtype: None
         """
 
-        payload = { 
-        }
+        payload = {}
         mypartial = partial(self.resp_get_button)
         if callb:
             mycallb = lambda x, y: (mypartial(y), callb(x, y))
         else:
             mycallb = lambda x, y: mypartial(y)
-        
+
         if not rapid:
             self.req_with_resp(SetButton, StateButton, payload, callb=mycallb)
         else:
@@ -1819,7 +1820,7 @@ class Light(Device):
             "count": resp.count,
             "index": resp.index,
             "buttons_count": resp.buttons_count,
-            "buttons": resp.buttons
+            "buttons": resp.buttons,
         }
 
     def get_button_config(self, callb=None):
@@ -1836,59 +1837,80 @@ class Light(Device):
         else:
             mycallb = lambda x, y: mypartial(y)
 
-        response = self.req_with_resp(GetButtonConfig, StateButtonConfig, {}, callb=mycallb)
+        response = self.req_with_resp(
+            GetButtonConfig, StateButtonConfig, {}, callb=mycallb
+        )
 
-    def set_button_config(self, haptic_duration_ms: int, backlight_on_color, backlight_off_color, callb=None, rapid=False):
-        """ Sets button config
+    def set_button_config(
+        self,
+        haptic_duration_ms: int,
+        backlight_on_color,
+        backlight_off_color,
+        callb=None,
+        rapid=False,
+    ):
+        """Sets button config
 
-            :param haptic_duration_ms: How many milliseconds the haptic vibration when the button is pressed should last
-            :type haptic_duration_ms: int
-            :param backlight_on_color: The color the backlight should be when a button is on
-            :type backlight_on_color: { "hue": int, "saturation": int, "brightness": int, "kelvin": int }
-            :param backlight_off_color: The color the backlight should be when a button is off
-            :type backlight_off_color: { "hue": int, "saturation": int, "brightness": int, "kelvin": int }
-            :param callb: Callable to be used when the response is received.
-            :type callb: callable
-            :param rapid: Whether to ask for ack (False) or not (True). Default False
-            :type rapid: bool
-            :returns: None
-            :rtype: None
+        :param haptic_duration_ms: How many milliseconds the haptic vibration when the button is pressed should last
+        :type haptic_duration_ms: int
+        :param backlight_on_color: The color the backlight should be when a button is on
+        :type backlight_on_color: { "hue": int, "saturation": int, "brightness": int, "kelvin": int }
+        :param backlight_off_color: The color the backlight should be when a button is off
+        :type backlight_off_color: { "hue": int, "saturation": int, "brightness": int, "kelvin": int }
+        :param callb: Callable to be used when the response is received.
+        :type callb: callable
+        :param rapid: Whether to ask for ack (False) or not (True). Default False
+        :type rapid: bool
+        :returns: None
+        :rtype: None
         """
 
-        payload = { 
+        payload = {
             "haptic_duration_ms": haptic_duration_ms,
             "backlight_on_color": backlight_on_color,
-            "backlight_off_color": backlight_off_color
+            "backlight_off_color": backlight_off_color,
         }
         mypartial = partial(
             self.resp_get_button_config,
             haptic_duration_ms=haptic_duration_ms,
             backlight_on_color=backlight_on_color,
-            backlight_off_color=backlight_off_color
+            backlight_off_color=backlight_off_color,
         )
         if callb:
             mycallb = lambda x, y: (mypartial(y), callb(x, y))
         else:
             mycallb = lambda x, y: mypartial(y)
-        
+
         if not rapid:
-            self.req_with_resp(SetButtonConfig, StateButtonConfig, payload, callb=mycallb)
+            self.req_with_resp(
+                SetButtonConfig, StateButtonConfig, payload, callb=mycallb
+            )
         else:
             self.fire_and_forget(SetButtonConfig, payload)
 
-    def resp_get_button_config(self, resp, haptic_duration_ms=None, backlight_on_color=None, backlight_off_color=None):
+    def resp_get_button_config(
+        self,
+        resp,
+        haptic_duration_ms=None,
+        backlight_on_color=None,
+        backlight_off_color=None,
+    ):
         """Default callback for get_button_config/set_button_config"""
-        if(haptic_duration_ms != None and backlight_on_color != None and backlight_off_color != None):
+        if (
+            haptic_duration_ms != None
+            and backlight_on_color != None
+            and backlight_off_color != None
+        ):
             self.button_config = {
                 "haptic_duration_ms": haptic_duration_ms,
                 "backlight_on_color": backlight_on_color,
-                "backlight_off_color": backlight_off_color
+                "backlight_off_color": backlight_off_color,
             }
         elif resp:
             self.button_config = {
                 "haptic_duration_ms": resp.haptic_duration_ms,
                 "backlight_on_color": resp.backlight_on_color,
-                "backlight_off_color": resp.backlight_off_color
+                "backlight_off_color": resp.backlight_off_color,
             }
 
     def get_accesspoint(self, callb=None):
