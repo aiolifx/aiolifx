@@ -107,10 +107,11 @@ Other things worth noting:
       keys instead of all those parameters
 
 # Development
-To develop locally, the easiest way is to from the root directory run:
+## Running locally
+Run this command each time you make changes to the project. It enters at `__main__.py`
 
 ```bash
-pip3 install . && python3 ./examples/lifx-cli.py
+pip3 install . && aiolifx
 ```
 
 # Thanks

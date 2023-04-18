@@ -23,6 +23,8 @@ setuptools.setup(
         "async_timeout>=3.0.1",
         "bitstring",
         "ifaddr",
+        'click>=8.1.0,<8.2.0',
+        'InquirerPy>=0.3.0,<0.4.0'
     ],
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
@@ -32,7 +34,7 @@ setuptools.setup(
         # that you indicate whether you support Python 2, Python 3 or both.
         "Programming Language :: Python :: 3",
     ],
-    entry_points={"console_scripts": ["aiolifx=aiolifx.__main__:main"]},
+    entry_points={"console_scripts": ["aiolifx = aiolifx.__main__:cli"]},
     python_requires=">=3.4",
     zip_safe=False,
 )
