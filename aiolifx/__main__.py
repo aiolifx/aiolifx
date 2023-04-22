@@ -110,8 +110,8 @@ def get_features(bulb):
 
 async def get_device(devices):
     device_choices = [
-        Choice("back", name="❌ Quit"),
         *[Choice(device.mac_addr, name=device.label) for device in devices],
+        Choice("back", name="❌ Quit")
     ]
     device_mac_addr = await inquirer.fuzzy(
         message="Select a device", choices=device_choices
@@ -125,8 +125,8 @@ async def get_device(devices):
 async def get_feature(device):
     features = get_features(device.product)
     features_choices = [
-        (Choice("back", name="❌ Go back to device selection")),
         *[Choice(feature, name=feature.value) for feature in features],
+        (Choice("back", name="❌ Go back to device selection")),
     ]
     option = await inquirer.fuzzy(
         message="Select an option", choices=features_choices
@@ -422,6 +422,7 @@ async def amain():
         # Wait to discover bulbs
         await aio.sleep(1)
         print("Use Ctrl-C to quit")
+        print("Start typing or use arrow keys to navigate, and enter to select.")
         await readin()
     finally:
         discovery.cleanup()
@@ -450,3 +451,6 @@ def cli(ipv6prefix, extra):
         print("\nExiting at user's request.")
     except Exception as e:
         print(f"Error: {e}")
+
+if __name__ == "__main__":
+    cli()
