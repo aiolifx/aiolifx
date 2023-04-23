@@ -31,7 +31,9 @@ from .products import *
 from .unpack import unpack_lifx_message
 from functools import partial
 from math import floor
-import time, random, datetime, socket, ifaddr
+import random, datetime, socket, ifaddr
+from dataclasses import dataclass, field
+
 
 # prevent tasks from being garbage collected
 _BACKGROUND_TASKS: Set[aio.Task] = set()
@@ -102,7 +104,7 @@ def nanosec_to_hours(ns):
     """
     return ns / (1000000000.0 * 60 * 60)
 
-
+@dataclass
 class Device(aio.DatagramProtocol):
     """Connection to a given Lifx device.
 
@@ -120,37 +122,36 @@ class Device(aio.DatagramProtocol):
     :rtype: DatagramProtocol
     """
 
-    def __init__(self, loop, mac_addr, ip_addr, port, parent=None):
-        self.loop = loop
-        self.mac_addr = mac_addr
-        self.ip_addr = ip_addr
-        self.port = port
-        self.parent = parent
-        self.registered = False
-        self.retry_count = DEFAULT_ATTEMPTS
-        self.timeout = DEFAULT_TIMEOUT
-        self.unregister_timeout = DEFAULT_TIMEOUT
-        self.transport = None
-        self.task = None
-        self.seq = 0
-        # Key is the message sequence, value is (Response, Event, callb )
-        self.message = {}
-        self.source_id = random.randint(0, (2**32) - 1)
-        # Default callback for unexpected messages
-        self.default_callb = None
-        # And the rest
-        self.label = None
-        self.location = None
-        self.group = None
-        self.power_level = None
-        self.vendor = None
-        self.product = None
-        self.version = None
-        self.host_firmware_version = None
-        self.host_firmware_build_timestamp = None
-        self.wifi_firmware_version = None
-        self.wifi_firmware_build_timestamp = None
-        self.lastmsg = datetime.datetime.now()
+    loop: aio.AbstractEventLoop
+    mac_addr: str
+    ip_addr: str
+    port: int
+    parent: Any = None
+    registered: bool = False
+    retry_count: int = DEFAULT_ATTEMPTS
+    timeout: float = DEFAULT_TIMEOUT
+    unregister_timeout: float = DEFAULT_TIMEOUT
+    transport: aio.DatagramTransport = None
+    task: aio.Task = None
+    seq: int = 0
+    # Key is the message sequence, value is (Response, Event, callb )
+    message: dict = field(default_factory=dict)
+    source_id: int = random.randint(0, (2**32) - 1)
+    # Default callback for unexpected messages
+    default_callb: Any = None
+    # And the rest
+    label: str = None
+    location: str = None
+    group: str = None
+    power_level: int = None
+    vendor: str = None
+    product: str = None
+    version: str = None
+    host_firmware_version: str = None
+    host_firmware_build_timestamp: float = None
+    wifi_firmware_version: str = None
+    wifi_firmware_build_timestamp: float = None
+    lastmsg: datetime = datetime.datetime.now()
 
     def seq_next(self):
         """Method to return the next sequence value to use in messages.
@@ -889,50 +890,38 @@ class Device(aio.DatagramProtocol):
         """
         self.default_callb = callb
 
+def lowercase(str):
+    return str.lower()
 
+@dataclass
 class Light(Device):
-    """Connection to a given Lifx light device.
-
-    :param loop: The asyncio loop being used
-    :type loop: asyncio.AbstractEventLoop
-    :param: mac_addr: The device MAC address aa:bb:cc:dd:ee:ff
-    :type mac_addr: string
-    :param ip_addr: The devie IP address (either IPv4 or IPv6)
-    :type ip_addr: string
-    :param port: The port used by the unicast connection
-    :type port: into
-    :param parent: Parent object with register/unregister methods
-    :type parent: object
-    :returns: an asyncio DatagramProtocol to handle communication with the device
-    :rtype: DatagramProtocol
-    """
-
-    def __init__(self, loop, mac_addr, ip_addr, port=UDP_BROADCAST_PORT, parent=None):
-        mac_addr = mac_addr.lower()
-        super(Light, self).__init__(loop, mac_addr, ip_addr, port, parent)
-        self.color = None
-        self.color_zones = None
-        self.zones_count = 1
-        self.infrared_brightness = None
-        self.hev_cycle = None
-        self.hev_cycle_configuration = None
-        self.last_hev_cycle_result = None
-        self.effect = {"effect": None}
-        # matrix devices: Tile, Candle, Path, Spot, Ceiling
-        self.chain = {}
-        self.chain_length = 0
-        self.tile_devices = []
-        self.tile_devices_count = 0
-        self.tile_device_width = 0
-        # Only used by a Lifx Switch. Will be populated with either True or False for each relay index if `get_rpower` called.
-        # At the moment we assume the switch to be 4 relays. This will likely work with the 2 relays switch as well, but only the first two values
-        # in this array will contain useful data.
-        self.relays_power = [None, None, None, None]
-        # Only used by a Lifx switch. Will be populated with an object containing the `haptic_duration_ms`, `backlight_on_color` and `backlight_off_color`
-        self.button_config = None
-        # Only used by a Lifx switch. Will be populated with an object containing `count`, `index`, `buttons_count` and `buttons`
-        self.button = None
-
+    mac_addr: str
+    color = None
+    color_zones = None
+    zones_count: int = 1
+    infrared_brightness: int = 0
+    hev_cycle = None
+    hev_cycle_configuration = None
+    last_hev_cycle_result = None
+    effect = {"effect": None}
+    # matrix devices: Tile, Candle, Path, Spot, Ceiling
+    chain = {}
+    chain_length = 0
+    tile_devices = []
+    tile_devices_count = 0
+    tile_device_width = 0
+    # Only used by a Lifx Switch. Will be populated with either True or False for each relay index if `get_rpower` called.
+    # At the moment we assume the switch to be 4 relays. This will likely work with the 2 relays switch as well, but only the first two values
+    # in this array will contain useful data.
+    relays_power = [None, None, None, None]
+    # Only used by a Lifx switch. Will be populated with an object containing the `haptic_duration_ms`, `backlight_on_color` and `backlight_off_color`
+    button_config = None
+    # Only used by a Lifx switch. Will be populated with an object containing `count`, `index`, `buttons_count` and `buttons`
+    button = None
+    
+    def __post_init__(self):
+        self.mac_addr = self.mac_addr.lower()
+    
     def get_power(self, callb=None):
         """Convenience method to request the power status from the device
 
