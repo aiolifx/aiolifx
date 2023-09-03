@@ -24,6 +24,12 @@
 # IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 from enum import Enum
 import asyncio as aio
+from typing import List, Literal, Optional, Tuple, TypeVar, Union
+from aiolifx.aiolifx import Device
+from aiolifx.fixtures.device_features import DeviceFeatures
+from aiolifx.fixtures.fixtures import HevLight, ColorLight, MultizoneLight, Switch, Light
+from aiolifx.fixtures.light import LightMixin
+
 
 import click
 import aiolifx as alix
@@ -47,11 +53,11 @@ class bulbs:
     def register(self, bulb):
         global opts
         bulb.get_label()
-        bulb.get_location()
-        bulb.get_version()
-        bulb.get_group()
-        bulb.get_wififirmware()
-        bulb.get_hostfirmware()
+        # bulb.get_location()
+        # bulb.get_version()
+        # bulb.get_group()
+        # bulb.get_wififirmware()
+        # bulb.get_hostfirmware()
         self.bulbs.append(bulb)
         self.bulbs.sort(key=lambda x: x.label or x.mac_addr)
         if opts["extra"]:
@@ -66,65 +72,26 @@ class bulbs:
             idx += 1
 
 
-class DeviceFeatures(Enum):
-    INFO = "Info"
-    FIRMWARE = "Firmware"
-    WIFI = "Wifi"
-    UPTIME = "Uptime"
-    POWER = "Power"
-    WHITE = "White"
-    COLOR = "Color"
-    PULSE = "Pulse"
-    HEV_CYCLE = "HEV Cycle"
-    HEV_CONFIGURATION = "HEV Configuration"
-    MULTIZONE_FIRMWARE_EFFECT = "Get Multizone Firmware Effect"
-    MULTIZONE_FIRMWARE_EFFECT_START_STOP = "Start/Stop Firmware Effect"
-    MATRIX_FIRMWARE_EFFECT = "Get Matrix Firmware Effect"
-    MATRIX_FIRMWARE_EFFECT_START_STOP = "Start/Stop Firmware Effect"
-    RELAYS = "Relays"
-    BUTTONS = "Buttons"
-    BUTTON_CONFIG = "Button Config"
-    REBOOT = "Reboot"
+# class DeviceFeatures(Enum):
+#     INFO = "Info"
+#     FIRMWARE = "Firmware"
+#     WIFI = "Wifi"
+#     UPTIME = "Uptime"
+#     POWER = "Power"
+#     WHITE = "White"
+#     COLOR = "Color"
+#     PULSE = "Pulse"
+#     HEV_CYCLE = "HEV Cycle"
+#     HEV_CONFIGURATION = "HEV Configuration"
+#     FIRMWARE_EFFECT = "Firmware Effect"
+#     FIRMWARE_EFFECT_START_STOP = "Firmware Effect Start/Stop"
+#     RELAYS = "Relays"
+#     BUTTONS = "Buttons"
+#     BUTTON_CONFIG = "Button Config"
+#     REBOOT = "Reboot"
 
 
-def get_features(device):
-    base_options = [
-        DeviceFeatures.INFO,
-        DeviceFeatures.FIRMWARE,
-        DeviceFeatures.WIFI,
-        DeviceFeatures.UPTIME,
-        DeviceFeatures.REBOOT,
-    ]
-    features = []
-    if alix.aiolifx.products_dict[device].max_kelvin != None:
-        features.extend([DeviceFeatures.POWER, DeviceFeatures.WHITE])
-    if alix.aiolifx.products_dict[device].color is True:
-        features.extend([DeviceFeatures.COLOR, DeviceFeatures.PULSE])
-    if alix.aiolifx.products_dict[device].hev is True:
-        features.extend([DeviceFeatures.HEV_CYCLE, DeviceFeatures.HEV_CONFIGURATION])
-    if alix.aiolifx.products_dict[device].multizone is True:
-        features.extend(
-            [
-                DeviceFeatures.MULTIZONE_FIRMWARE_EFFECT,
-                DeviceFeatures.MULTIZONE_FIRMWARE_EFFECT_START_STOP,
-            ]
-        )
-    if alix.aiolifx.products_dict[device].matrix is True:
-        features.extend(
-            [
-                DeviceFeatures.MATRIX_FIRMWARE_EFFECT,
-                DeviceFeatures.MATRIX_FIRMWARE_EFFECT_START_STOP,
-            ]
-        )
-    if alix.aiolifx.products_dict[device].relays is True:
-        features.append(DeviceFeatures.RELAYS)
-    if alix.aiolifx.products_dict[device].buttons is True:
-        features.extend([DeviceFeatures.BUTTONS, DeviceFeatures.BUTTON_CONFIG])
-    features.extend(base_options)
-    return features
-
-
-async def get_device(devices):
+async def get_device(devices: List[Device]) -> Optional[Device]:
     device_choices = [
         *[Choice(device.mac_addr, name=device.label) for device in devices],
         Choice("back", name="❌ Quit"),
@@ -137,16 +104,29 @@ async def get_device(devices):
     )
     return device
 
+# async def get_feature(device_features: Tuple[T, ...]) -> Optional[T]:
+#     # TODO: Here we should get the class of `device.fixture` and have a map between class and the features it supports
+#     # Maybe a map between `DeviceFeature` and the actual device.fixture.* method so we can ensure that the method actually exists on that fixture type
+#     # see call site
+#     features_choices: List[Union[T, Literal["back"]]] = [
+#         *[Choice(feature, name=feature.value) for feature in device_features],
+#         (Choice("back", name="❌ Go back to device selection")),
+#     ]
+#     option: Union[T, Literal["back"]] = await inquirer.fuzzy(
+#         message="Select an option", choices=features_choices
+#     ).execute_async()
+#     if option == "back":
+#         return None
+#     return option
 
-async def get_feature(device):
-    features = get_features(device.product)
-    features_choices = [
-        *[Choice(feature, name=feature.value) for feature in features],
-        (Choice("back", name="❌ Go back to device selection")),
-    ]
-    option = await inquirer.fuzzy(
-        message="Select an option", choices=features_choices
+
+async def get_feature(device_features: Tuple[DeviceFeatures, ...]) -> Optional[DeviceFeatures]:
+    feature_choices: Tuple[Union[DeviceFeatures, Literal["back"]]] = (*device_features, "back")
+
+    option: Union[DeviceFeatures, Literal["back"]] = await inquirer.fuzzy(
+        message="Select an option", choices=feature_choices
     ).execute_async()
+
     if option == "back":
         return None
     return option
@@ -157,7 +137,21 @@ async def readin():
         device = await get_device(MyBulbs.bulbs)
         if device is None:
             break
-        feature = await get_feature(device)
+        # fixture = narrow(device.fixture)
+        # features = get_features(device.fixture)
+        fixture = device.fixture
+        if fixture is None:
+            break
+
+        typez = type(fixture)  # We must use a variable here
+        # reveal_type(typez)  # Revealed type is "builtins.type"
+
+        if issubclass(typez, LightMixin):
+            feets = fixture.DEVICE_FEATURES
+            feature = await get_feature(fixture.DEVICE_FEATURES)
+            print(feets)
+        return
+
         if feature is None:  # if going back
             continue
         if feature == DeviceFeatures.POWER:
@@ -184,7 +178,7 @@ async def readin():
                     print("Kelvin must be greater than 1500")
                     continue
                 break
-            device.set_color(
+            device.fixture.set_color(
                 [
                     58275,
                     0,
