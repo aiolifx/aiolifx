@@ -7,11 +7,8 @@ from aiolifx.msgtypes import LightGet, LightSetColor, LightState
 
 @dataclass
 class ColorLightMixin(BaseFixture):
-    DEVICE_FEATURES = (
-        DeviceFeatures.COLOR,
-        DeviceFeatures.PULSE
-    )
-    
+    capabilities = [DeviceFeatures.COLOR, DeviceFeatures.PULSE]
+
     color = None
     color_zones = None
 

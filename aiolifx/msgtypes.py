@@ -7,6 +7,7 @@
 # Also need to make custom errors possibly, though tool may have those.
 
 from curses import color_content
+from typing import List
 from .message import Message, BROADCAST_MAC, HEADER_SIZE_BYTES, little_endian
 import bitstring
 from enum import Enum
@@ -1344,6 +1345,10 @@ class StateLastHevCycleResult(Message):
 
 
 class MultiZoneStateMultiZone(Message):
+    count: int
+    index: int
+    color: List[int]
+
     def __init__(
         self,
         target_addr,

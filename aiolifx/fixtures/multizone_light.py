@@ -1,17 +1,34 @@
 from dataclasses import dataclass
 from functools import partial
 from math import floor
-from aiolifx.fixtures.base_fixture import BaseFixture
+from typing import Dict, List, Union
+from aiolifx.fixtures.base_fixture import RootFixture, BaseFixture
 from aiolifx.fixtures.device_features import DeviceFeatures
-from aiolifx.msgtypes import MultiZoneDirection, MultiZoneEffectType, MultiZoneGetColorZones, MultiZoneGetExtendedColorZones, MultiZoneGetMultiZoneEffect, MultiZoneSetColorZones, MultiZoneSetExtendedColorZones, MultiZoneSetMultiZoneEffect, MultiZoneStateExtendedColorZones, MultiZoneStateMultiZone, MultiZoneStateMultiZoneEffect, TileEffectType, TileGetTileEffect, TileSetTileEffect, TileStateTileEffect
+from aiolifx.msgtypes import (
+    MultiZoneDirection,
+    MultiZoneEffectType,
+    MultiZoneGetColorZones,
+    MultiZoneGetExtendedColorZones,
+    MultiZoneGetMultiZoneEffect,
+    MultiZoneSetColorZones,
+    MultiZoneSetExtendedColorZones,
+    MultiZoneSetMultiZoneEffect,
+    MultiZoneStateExtendedColorZones,
+    MultiZoneStateMultiZone,
+    MultiZoneStateMultiZoneEffect,
+    TileEffectType,
+    TileGetTileEffect,
+    TileSetTileEffect,
+    TileStateTileEffect,
+)
 
 
 @dataclass
-class MultizoneLightMixin(BaseFixture):
-    DEVICE_FEATURES = (
-        DeviceFeatures.FIRMWARE_EFFECT,
-        DeviceFeatures.FIRMWARE_EFFECT_START_STOP
-    )
+class MultizoneLightMixin(RootFixture, BaseFixture):
+    capabilities = [
+        DeviceFeatures.MULTIZONE_FIRMWARE_EFFECT,
+        DeviceFeatures.MULTIZONE_FIRMWARE_EFFECT_START_STOP,
+    ]
 
     def __init__(self, req_with_resp, req_with_ack, fire_and_forget):
         super().__init__(req_with_resp, req_with_ack, fire_and_forget)
@@ -98,7 +115,7 @@ class MultizoneLightMixin(BaseFixture):
                 self.req_with_ack(MultiZoneSetColorZones, args, callb=mycallb)
 
     # A multi-zone MultiZoneGetColorZones returns MultiZoneStateMultiZone -> multizonemultizone
-    def resp_set_multizonemultizone(self, resp, args=None):
+    def resp_set_multizonemultizone(self, resp: MultiZoneStateMultiZone, args=None):
         """Default callback for get-color_zones/set_color_zones"""
         if args:
             if self.color_zones:

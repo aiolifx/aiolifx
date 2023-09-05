@@ -1,19 +1,29 @@
 from dataclasses import dataclass
 from functools import partial
-from aiolifx.fixtures.base_fixture import BaseFixture
+from aiolifx.fixtures.base_fixture import BaseFixture, RootFixture
 from aiolifx.fixtures.device_features import DeviceFeatures
 
-from aiolifx.msgtypes import GetButton, GetButtonConfig, GetRPower, SetButtonConfig, SetRPower, StateButton, StateButtonConfig, StateRPower
+from aiolifx.msgtypes import (
+    GetButton,
+    GetButtonConfig,
+    GetRPower,
+    SetButtonConfig,
+    SetRPower,
+    StateButton,
+    StateButtonConfig,
+    StateRPower,
+)
 
 MAX_UNSIGNED_16_BIT_INTEGER_VALUE = int("0xFFFF", 16)
 
+
 @dataclass
-class SwitchMixin(BaseFixture):
-    DEVICE_FEATURES = (
+class SwitchMixin(RootFixture, BaseFixture):
+    capabilities = [
         DeviceFeatures.RELAYS,
         DeviceFeatures.BUTTONS,
-        DeviceFeatures.BUTTON_CONFIG
-    )
+        DeviceFeatures.BUTTON_CONFIG,
+    ]
 
     # Only used by a Lifx Switch. Will be populated with either True or False for each relay index if `get_rpower` called.
     # At the moment we assume the switch to be 4 relays. This will likely work with the 2 relays switch as well, but only the first two values

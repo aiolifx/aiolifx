@@ -1,20 +1,26 @@
-
-
 from dataclasses import dataclass
 from functools import partial
 from aiolifx.fixtures.base_fixture import BaseFixture
 from aiolifx.fixtures.device_features import DeviceFeatures
-from aiolifx.msgtypes import LAST_HEV_CYCLE_RESULT, GetHevCycle, GetHevCycleConfiguration, GetLastHevCycleResult, LightGetInfrared, LightSetInfrared, LightStateInfrared, SetHevCycle, SetHevCycleConfiguration, StateHevCycle, StateLastHevCycleResult
+from aiolifx.msgtypes import (
+    LAST_HEV_CYCLE_RESULT,
+    GetHevCycle,
+    GetHevCycleConfiguration,
+    GetLastHevCycleResult,
+    LightGetInfrared,
+    LightSetInfrared,
+    LightStateInfrared,
+    SetHevCycle,
+    SetHevCycleConfiguration,
+    StateHevCycle,
+    StateLastHevCycleResult,
+)
 from build.lib.aiolifx.msgtypes import StateHevCycleConfiguration
 
 
 @dataclass
-class HevLightMixin(BaseFixture): 
-    DEVICE_FEATURES = (
-        DeviceFeatures.HEV_CYCLE,
-        DeviceFeatures.HEV_CONFIGURATION
-    )
-    
+class HevLightMixin(BaseFixture):
+    capabilities = [DeviceFeatures.HEV_CYCLE, DeviceFeatures.HEV_CONFIGURATION]
     infrared_brightness: int = 0
     hev_cycle = None
     hev_cycle_configuration = None
@@ -103,8 +109,7 @@ class HevLightMixin(BaseFixture):
         :returns: None
         :rtype: None
         """
-        if products_dict[self.product].hev is True:
-            self.req_with_resp(GetHevCycle, StateHevCycle, callb=callb)
+        self.req_with_resp(GetHevCycle, StateHevCycle, callb=callb)
 
     def resp_set_hevcycle(self, resp):
         """Default callback for get_hev_cycle/set_hev_cycle"""
@@ -135,22 +140,21 @@ class HevLightMixin(BaseFixture):
         :returns: None
         :rtype: None
         """
-        if products_dict[self.product].hev is True:
-            if rapid:
-                self.fire_and_forget(
-                    SetHevCycle,
-                    {"enable": int(enable), "duration": duration},
-                    num_repeats=1,
-                )
-                if callb:
-                    callb(self, None)
-            else:
-                self.req_with_resp(
-                    SetHevCycle,
-                    StateHevCycle,
-                    {"enable": int(enable), "duration": duration},
-                    callb=callb,
-                )
+        if rapid:
+            self.fire_and_forget(
+                SetHevCycle,
+                {"enable": int(enable), "duration": duration},
+                num_repeats=1,
+            )
+            if callb:
+                callb(self, None)
+        else:
+            self.req_with_resp(
+                SetHevCycle,
+                StateHevCycle,
+                {"enable": int(enable), "duration": duration},
+                callb=callb,
+            )
 
     def get_hev_configuration(self, callb=None):
         """Requests the default HEV configuration of the device.
@@ -164,10 +168,9 @@ class HevLightMixin(BaseFixture):
         :returns: None
         :rtype: None
         """
-        if products_dict[self.product].hev is True:
-            self.req_with_resp(
-                GetHevCycleConfiguration, StateHevCycleConfiguration, callb=callb
-            )
+        self.req_with_resp(
+            GetHevCycleConfiguration, StateHevCycleConfiguration, callb=callb
+        )
 
     def resp_set_hevcycleconfiguration(self, resp):
         """Default callback for get_hev_cycle_configuration/set_hev_cycle_configuration"""
@@ -197,22 +200,21 @@ class HevLightMixin(BaseFixture):
         :returns: None
         :rtype: None
         """
-        if products_dict[self.product].hev is True:
-            if rapid:
-                self.fire_and_forget(
-                    SetHevCycleConfiguration,
-                    {"indication": int(indication), "duration": duration},
-                    num_repeats=1,
-                )
-                if callb:
-                    callb(self, None)
-            else:
-                self.req_with_resp(
-                    SetHevCycleConfiguration,
-                    StateHevCycleConfiguration,
-                    {"indication": int(indication), "duration": duration},
-                    callb=callb,
-                )
+        if rapid:
+            self.fire_and_forget(
+                SetHevCycleConfiguration,
+                {"indication": int(indication), "duration": duration},
+                num_repeats=1,
+            )
+            if callb:
+                callb(self, None)
+        else:
+            self.req_with_resp(
+                SetHevCycleConfiguration,
+                StateHevCycleConfiguration,
+                {"indication": int(indication), "duration": duration},
+                callb=callb,
+            )
 
     # Get last HEV cycle result
     def get_last_hev_cycle_result(self, callb=None):
@@ -227,10 +229,7 @@ class HevLightMixin(BaseFixture):
         :returns: None
         :rtype: None
         """
-        if products_dict[self.product].hev is True:
-            self.req_with_resp(
-                GetLastHevCycleResult, StateLastHevCycleResult, callb=callb
-            )
+        self.req_with_resp(GetLastHevCycleResult, StateLastHevCycleResult, callb=callb)
 
     def resp_set_lasthevcycleresult(self, resp):
         if resp:
