@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 import setuptools
 
-version = "0.9.0"
+version = "1.0.0-pre"
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -23,8 +23,8 @@ setuptools.setup(
         "async_timeout>=3.0.1",
         "bitstring",
         "ifaddr",
-        'click>=8.1.0,<8.2.0',
-        'InquirerPy>=0.3.0,<0.4.0'
+        "click>=8.1.0,<8.2.0",
+        "InquirerPy>=0.3.0,<0.4.0",
     ],
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[

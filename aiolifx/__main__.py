@@ -463,35 +463,35 @@ async def readin():
                             )
                         else:
                             return MIN_KELVIN_VALUE
+
                     backlight_color = {
-                        "hue": int(
-                            round(360 * (backlight["hue"] / 65535))
-                        ),
+                        "hue": int(round(360 * (backlight["hue"] / 65535))),
                         "saturation": int(
-                            round(
-                                100
-                                * (backlight["saturation"] / 65535)
-                            )
+                            round(100 * (backlight["saturation"] / 65535))
                         ),
                         "brightness": int(
-                            round(
-                                100
-                                * (backlight["brightness"] / 65535)
-                            )
+                            round(100 * (backlight["brightness"] / 65535))
                         ),
                         "kelvin": get_kelvin(backlight["kelvin"]),
                     }
-                    return (f"\n\tHue: {backlight_color['hue']},\n"
-                    + f"\tSaturation: {backlight_color['saturation']}\n"
-                    + f"\tBrightness: {backlight_color['brightness']}\n"
-                    + f"\tKelvin (used if Hue is 0): {backlight_color['kelvin']}")
+                    return (
+                        f"\n\tHue: {backlight_color['hue']},\n"
+                        + f"\tSaturation: {backlight_color['saturation']}\n"
+                        + f"\tBrightness: {backlight_color['brightness']}\n"
+                        + f"\tKelvin (used if Hue is 0): {backlight_color['kelvin']}"
+                    )
 
-                backlight_on_color_str = get_backlight_str(buttonConfig.backlight_on_color)
-                backlight_off_color_str = get_backlight_str(buttonConfig.backlight_off_color) 
+                backlight_on_color_str = get_backlight_str(
+                    buttonConfig.backlight_on_color
+                )
+                backlight_off_color_str = get_backlight_str(
+                    buttonConfig.backlight_off_color
+                )
 
                 return print(
                     f"Haptic Duration (ms): {buttonConfig.haptic_duration_ms}\nBacklight on color: {backlight_on_color_str}\nBacklight off color: {backlight_off_color_str}"
                 )
+
             device.get_button_config(callback)
             await aio.sleep(0.5)
             should_set_button_config = await inquirer.confirm(
@@ -553,7 +553,7 @@ async def readin():
                         "brightness": int(round(65535 * (int(brightness) / 100))),
                         "kelvin": int(kelvin),
                     }
-                
+
                 print("Backlight on color")
                 backlight_on_color = await get_backlight_color()
                 print("Backlight off color")
