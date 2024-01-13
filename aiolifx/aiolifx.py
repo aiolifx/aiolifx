@@ -215,10 +215,9 @@ class Device(aio.DatagramProtocol):
                             "resp_set_"
                             + response.__class__.__name__.replace("State", "").lower()
                         )
-                        if setmethod in dir(self) and callable(
-                            getattr(self, setmethod)
-                        ):
-                            getattr(self, setmethod)(response)
+                        method = getattr(self, setmethod, None)
+                        if method:
+                            method(response)
                     if callb:
                         callb(self, response)
                     myevent.set()
