@@ -1747,6 +1747,9 @@ class TileSetTileEffect(Message):
         self.type = payload["type"]
         self.speed = payload["speed"]
         self.duration = payload["duration"]
+        self.sky_type = payload["sky_type"]
+        self.cloud_saturation_min = payload["cloud_saturation_min"]
+        self.cloud_saturation_max = payload["cloud_saturation_max"]
         self.palette_count = payload["palette_count"]
         self.palette = payload["palette"]
         super(TileSetTileEffect, self).__init__(
@@ -1759,32 +1762,39 @@ class TileSetTileEffect(Message):
         )
 
     def get_payload(self):
-        reserved8 = little_endian(bitstring.pack("int:8", 0))
-        reserved9 = little_endian(bitstring.pack("int:8", 0))
+        reserved = little_endian(bitstring.pack("int:8", 0))
         instanceid = little_endian(bitstring.pack("uint:32", self.instanceid))
         type = little_endian(bitstring.pack("uint:8", self.type))
         speed = little_endian(bitstring.pack("uint:32", self.speed))
         duration = little_endian(bitstring.pack("uint:64", self.duration))
-        reserved6 = little_endian(bitstring.pack("int:32", 0))
-        reserved7 = little_endian(bitstring.pack("int:32", 0))
-        parameters = little_endian(bitstring.pack("int:32", 0))
+        sky_type = little_endian(bitstring.pack("uint:8", self.sky_type))
+        cloud_saturation_min = little_endian(
+            bitstring.pack("uint:8", self.cloud_saturation_min)
+        )
+        cloud_saturation_max = little_endian(
+            bitstring.pack("uint:8", self.cloud_saturation_max)
+        )
         palette_count = little_endian(bitstring.pack("uint:8", self.palette_count))
         payload = (
-            reserved8
-            + reserved9
+            reserved * 2
             + instanceid
             + type
             + speed
             + duration
-            + reserved6
-            + reserved7
-            + parameters * 8
+            + reserved * 8
+            + sky_type
+            + reserved * 3
+            + cloud_saturation_min
+            + reserved * 3
+            + cloud_saturation_max
+            + reserved * 23
             + palette_count
         )
         for color in self.palette:
             payload += b"".join(
                 little_endian(bitstring.pack("uint:16", field)) for field in color
             )
+
         return payload
 
 
@@ -1802,6 +1812,9 @@ class TileStateTileEffect(Message):
         self.effect = payload["effect"]
         self.speed = payload["speed"]
         self.duration = payload["duration"]
+        self.sky_type = payload["sky_type"]
+        self.cloud_saturation_min = payload["cloud_saturation_min"]
+        self.cloud_saturation_max = payload["cloud_saturation_max"]
         self.palette_count = payload["palette_count"]
         self.palette = payload["palette"]
         super(TileStateTileEffect, self).__init__(
@@ -1818,19 +1831,49 @@ class TileStateTileEffect(Message):
         self.payload_fields.append("Effect", self.effect)
         self.payload_fields.append("Speed", self.speed)
         self.payload_fields.append("Duration", self.duration)
+        self.payload_fields.append("Sky Type", self.sky_type)
+        self.payload_fields.append("Cloud Saturation Min", self.cloud_saturation_min)
+        self.payload_fields.append("Cloud Saturation Max", self.cloud_saturation_max)
         self.payload_fields.append("Palette Count", self.palette_count)
         self.payload_fields.append("Palette", self.palette)
         instanceid = little_endian(bitstring.pack("uint:32", self.instanceid))
         effect = little_endian(bitstring.pack("uint:8", self.effect))
         speed = little_endian(bitstring.pack("uint:32", self.speed))
         duration = little_endian(bitstring.pack("uint:64", self.duration))
+        sky_type = little_endian(bitstring.pack("uint:8", self.sky_type))
+        cloud_saturation_min = little_endian(
+            bitstring.pack("uint:8", self.cloud_saturation_min)
+        )
+        cloud_saturation_max = little_endian(
+            bitstring.pack("uint:8", self.cloud_saturation_max)
+        )
         palette_count = little_endian(bitstring.pack("uint:8", self.palette_count))
-        payload = instanceid + effect + speed + duration + palette_count
+        payload = (
+            instanceid
+            + effect
+            + speed
+            + duration
+            + sky_type
+            + cloud_saturation_min
+            + cloud_saturation_max
+            + palette_count
+        )
         for color in self.palette:
             payload += b"".join(
                 little_endian(bitstring.pack("uint:16", field)) for field in color
             )
+
         return payload
+
+    @property
+    def effect_str(self):
+        return TileEffectType(self.effect).name.upper()
+
+    @property
+    def sky_type_str(self):
+        if self.effect == TileEffectType.SKY.value:
+            return TileEffectSkyType(self.sky_type).name.upper()
+        return "NONE"
 
 
 ##### RELAY (SWITCH) MESSAGES #####
@@ -2185,6 +2228,15 @@ LAST_HEV_CYCLE_RESULT = {
     255: "NONE",
 }
 
+TILE_EFFECT_SKY_PALETTE = {
+    0: "SKY",
+    1: "NIGHT_SKY",
+    2: "DAWN_SKY",
+    3: "DAWN_SUN",
+    4: "FULL_SUN",
+    5: "FINAL_SUN",
+}
+
 
 class Button:
     def __init__(self, data):
@@ -2287,6 +2339,13 @@ class TileEffectType(Enum):
     MORPH = 2
     FLAME = 3
     RESERVED2 = 4
+    SKY = 5
+
+
+class TileEffectSkyType(Enum):
+    SUNRISE = 0
+    SUNSET = 1
+    CLOUDS = 2
 
 
 def str_map(key):

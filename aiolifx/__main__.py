@@ -77,8 +77,10 @@ class DeviceFeatures(Enum):
     PULSE = "Pulse"
     HEV_CYCLE = "HEV Cycle"
     HEV_CONFIGURATION = "HEV Configuration"
-    FIRMWARE_EFFECT = "Firmware Effect"
-    FIRMWARE_EFFECT_START_STOP = "Firmware Effect Start/Stop"
+    MULTIZONE_FIRMWARE_EFFECT = "Get Multizone Firmware Effect"
+    MULTIZONE_FIRMWARE_EFFECT_START_STOP = "Start/Stop Firmware Effect"
+    MATRIX_FIRMWARE_EFFECT = "Get Matrix Firmware Effect"
+    MATRIX_FIRMWARE_EFFECT_START_STOP = "Start/Stop Firmware Effect"
     RELAYS = "Relays"
     BUTTONS = "Buttons"
     BUTTON_CONFIG = "Button Config"
@@ -102,7 +104,17 @@ def get_features(device):
         features.extend([DeviceFeatures.HEV_CYCLE, DeviceFeatures.HEV_CONFIGURATION])
     if alix.aiolifx.products_dict[device].multizone is True:
         features.extend(
-            [DeviceFeatures.FIRMWARE_EFFECT, DeviceFeatures.FIRMWARE_EFFECT_START_STOP]
+            [
+                DeviceFeatures.MULTIZONE_FIRMWARE_EFFECT,
+                DeviceFeatures.MULTIZONE_FIRMWARE_EFFECT_START_STOP,
+            ]
+        )
+    if alix.aiolifx.products_dict[device].matrix is True:
+        features.extend(
+            [
+                DeviceFeatures.MATRIX_FIRMWARE_EFFECT,
+                DeviceFeatures.MATRIX_FIRMWARE_EFFECT_START_STOP,
+            ]
         )
     if alix.aiolifx.products_dict[device].relays is True:
         features.append(DeviceFeatures.RELAYS)
@@ -303,7 +315,43 @@ async def readin():
                 )
 
             device = None
-        elif feature == DeviceFeatures.FIRMWARE_EFFECT:
+        elif feature == DeviceFeatures.MATRIX_FIRMWARE_EFFECT:
+
+            print("Getting current firmware effect state from matrix device")
+            device.get_tile_effect(
+                callb=lambda _, r: print(
+                    f"\nCurrent effect={r.effect_str}"
+                    f"\nSpeed={r.speed/1000 if getattr(r, 'speed', None) is not None else 0}"
+                    f"\nDuration={r.duration/1000000000 if getattr(r, 'duration', None) is not None else 0:4f}"
+                    f"\nSky type={r.sky_type_str}"
+                    f"\nCloud saturation min={r.cloud_saturation_min}"
+                    f"\nCloud saturation max={r.cloud_saturation_max}"
+                )
+            )
+            device = None
+        elif feature == DeviceFeatures.MATRIX_FIRMWARE_EFFECT_START_STOP:
+
+            effect = await inquirer.fuzzy(
+                message="Effect",
+                choices=["Off", "Morph", "Flame", "Sky"],
+            ).execute_async()
+
+            if effect.lower() == "sky":
+                sky_type = await inquirer.fuzzy(
+                    message="Sky Type", choices=["Sunrise", "Sunset", "Clouds"]
+                ).execute_async()
+                e = alix.aiolifx.TileEffectType[effect.upper()].value
+                st = alix.TileEffectSkyType[sky_type.upper()].value
+                sp = 50
+            else:
+                e = alix.aiolifx.TileEffectType[effect.upper()].value
+                st = None
+                sp = 3
+
+            device.set_tile_effect(effect=e, speed=sp, sky_type=st)
+            device = None
+        elif feature == DeviceFeatures.MULTIZONE_FIRMWARE_EFFECT:
+
             print("Getting current firmware effect state from multizone device")
             device.get_multizone_effect(
                 callb=lambda _, r: print(
@@ -314,8 +362,8 @@ async def readin():
                 )
             )
             device = None
-        elif feature == DeviceFeatures.FIRMWARE_EFFECT_START_STOP:
-            print("HELLO")
+        elif feature == DeviceFeatures.MULTIZONE_FIRMWARE_EFFECT_START_STOP:
+
             effect = await inquirer.fuzzy(
                 message="Effect",
                 choices=["Off", "Move"],

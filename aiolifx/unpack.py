@@ -478,6 +478,9 @@ def unpack_lifx_message(packed_message):
         effect = struct.unpack("B", payload_str[5:6])[0]
         speed = struct.unpack("I", payload_str[6:10])[0]
         duration = struct.unpack("Q", payload_str[10:18])[0]
+        sky_type = struct.unpack("B", payload_str[26:27])[0]
+        cloud_saturation_min = struct.unpack("B", payload_str[30:31])[0]
+        cloud_saturation_max = struct.unpack("B", payload_str[34:35])[0]
         palette_count = struct.unpack("B", payload_str[58:59])[0]
         palette = []
         for i in range(16):
@@ -489,6 +492,9 @@ def unpack_lifx_message(packed_message):
             "effect": effect,
             "speed": speed,
             "duration": duration,
+            "sky_type": sky_type,
+            "cloud_saturation_min": cloud_saturation_min,
+            "cloud_saturation_max": cloud_saturation_max,
             "palette_count": palette_count,
             "palette": palette,
         }
