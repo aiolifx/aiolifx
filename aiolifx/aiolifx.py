@@ -1628,16 +1628,32 @@ class Light(Device):
         )
         return self.effect
 
-    def set_tile_effect(self, effect=0, speed=3, palette=None, callb=None, rapid=False):
+    def set_tile_effect(
+        self,
+        effect=0,
+        speed=None,
+        sky_type=None,
+        cloud_saturation_min=None,
+        cloud_saturation_max=None,
+        palette=[],
+        callb=None,
+        rapid=False,
+    ):
         """Convenience method to start or stop a firmware effect on matrix devices.
 
         A palette of up to 16 HSBK tuples can be provided for the MORPH effect, otherwise
         it will use the same Exciting theme used by the LIFX smart phone app.
 
-        :param effect: 0/Off, 2/Morph, 3/Flame
+        :param effect: 0/Off, 2/Morph, 3/Flame, 5/Sky (LIFX Ceiling only)
         :type effect: int/str
         :param speed: time in seconds for one cycle of the effect to travel the length of the device
         :type speed: int
+        :param sky_type: only used by Sky effect on LIFX ceiling
+        :type sky_type: int/str
+        :param cloud_saturation_min: only used by Sky effect on LIFX ceiling
+        :type cloud_saturation_min: int
+        :param cloud_saturation_max: only used by Sky effect on LIFX ceiling
+        :type cloud_saturation_max: int
         :param palette: a list of up to 16 HSBK tuples to use for the Morph effect
         :type palette: list[tuple(hue, saturation, brightness, kelvin)]
         :param callb: a callback to use when the response is received
@@ -1649,7 +1665,7 @@ class Light(Device):
         """
 
         # Exciting theme
-        default_tile_palette = [
+        default_morph_palette = [
             (0, 65535, 65535, 3500),
             (7282, 65535, 65535, 3500),
             (10923, 65535, 65535, 3500),
@@ -1665,20 +1681,48 @@ class Light(Device):
         elif type(effect) == int:
             typ = effect if effect in [e.value for e in TileEffectType] else 0
 
-        speed = floor(speed * 1000) if 0 < speed <= 60 else 3000
-        if palette is None:
-            palette = default_tile_palette
-        if len(palette) > 16:
-            palette = palette[:16]
+        if typ is TileEffectType.SKY.value:
+            if speed is None:
+                speed = 50
+            if sky_type is None:
+                sky_type = TileEffectSkyType.CLOUDS.value
+            elif type(sky_type) == str:
+                sky_type = TileEffectSkyType[sky_type.upper()].value
+            elif type(sky_type) == int:
+                sky_type = (
+                    sky_type if sky_type in [e.value for e in TileEffectSkyType] else 2
+                )
+            if cloud_saturation_min is None:
+                cloud_saturation_min = 50
+            if cloud_saturation_max is None:
+                cloud_saturation_max = 180
+
+        else:
+            sky_type = 0
+            cloud_saturation_min = 0
+            cloud_saturation_max = 0
+
+            if speed is None:
+                speed = 3
+            if len(palette) == 0 and typ is TileEffectType.MORPH.value:
+                palette = default_morph_palette
+            if len(palette) > 16:
+                palette = palette[:16]
+
         palette_count = len(palette)
+        speed = floor(speed * 1000) if 0 < speed <= 60 else 3000
 
         payload = {
             "type": typ,
             "speed": speed,
             "duration": 0,
+            "sky_type": sky_type,
+            "cloud_saturation_min": cloud_saturation_min,
+            "cloud_saturation_max": cloud_saturation_max,
             "palette_count": palette_count,
             "palette": palette,
         }
+
         if rapid:
             self.fire_and_forget(TileSetTileEffect, payload)
         else:
@@ -1694,8 +1738,15 @@ class Light(Device):
                 self.effect["duration"] = (
                     0.0
                     if resp.duration == 0
-                    else float(f"{self.effect['duration']/1000000000:4f}")
+                    else float(f"{resp.duration/1000000000:4f}")
                 )
+                if resp.effect == TileEffectType.SKY.value:
+                    self.effect["sky_type"] = TileEffectSkyType(
+                        resp.sky_type
+                    ).name.upper()
+                    self.effect["cloud_saturation_min"] = resp.cloud_saturation_min
+                    self.effect["cloud_saturation_max"] = resp.cloud_saturation_max
+
                 self.effect["palette_count"] = resp.palette_count
                 self.effect["palette"] = resp.palette
 
