@@ -1631,8 +1631,9 @@ class Light(Device):
     def set_tile_effect(
         self,
         effect=0,
-        speed=None,
+        speed=3,
         sky_type=None,
+        sky_speed=None,
         cloud_saturation_min=None,
         cloud_saturation_max=None,
         palette=[],
@@ -1650,6 +1651,8 @@ class Light(Device):
         :type speed: int
         :param sky_type: only used by Sky effect on LIFX ceiling
         :type sky_type: int/str
+        :param sky_speed: time in seconds for the Sunrise and Sunset sky type of the LIFX Ceiling Sky effect.
+        :type sky_speed: int
         :param cloud_saturation_min: only used by Sky effect on LIFX ceiling
         :type cloud_saturation_min: int
         :param cloud_saturation_max: only used by Sky effect on LIFX ceiling
@@ -1682,8 +1685,9 @@ class Light(Device):
             typ = effect if effect in [e.value for e in TileEffectType] else 0
 
         if typ is TileEffectType.SKY.value:
-            if speed is None:
-                speed = 50
+
+            speed = floor(sky_speed * 1000) if sky_speed is not None else 50000
+
             if sky_type is None:
                 sky_type = TileEffectSkyType.CLOUDS.value
             elif type(sky_type) == str:
@@ -1702,15 +1706,14 @@ class Light(Device):
             cloud_saturation_min = 0
             cloud_saturation_max = 0
 
-            if speed is None:
-                speed = 3
+            speed = floor(speed * 1000) if 0 < speed <= 60 else 3000
+
             if len(palette) == 0 and typ is TileEffectType.MORPH.value:
                 palette = default_morph_palette
             if len(palette) > 16:
                 palette = palette[:16]
 
         palette_count = len(palette)
-        speed = floor(speed * 1000) if 0 < speed <= 60 else 3000
 
         payload = {
             "type": typ,
