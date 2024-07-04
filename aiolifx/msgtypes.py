@@ -1713,6 +1713,206 @@ class MultiZoneStateExtendedColorZones(Message):
         return payload
 
 
+class TileGetDeviceChain(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload={},
+        ack_requested=False,
+        response_requested=False,
+    ):
+        super(TileGetDeviceChain, self).__init__(
+            MSG_IDS[TileGetDeviceChain],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+
+class TileStateDeviceChain(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.start_index = payload["start_index"]
+        self.tile_devices = [tile_device for tile_device in payload["tile_devices"]]
+        self.tile_devices_count = payload["tile_devices_count"]
+        super(TileStateDeviceChain, self).__init__(
+            MSG_IDS[TileStateDeviceChain],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        self.payload_fields.append(("Start Index", self.start_index))
+        self.payload_fields.append(("Devices", self.tile_devices))
+        self.payload_fields.append(("Devices Count", self.tile_devices_count))
+
+        start_index = little_endian(bitstring.pack("uint:8", self.start_index))
+        tile_devices = b""
+        for tile_device in self.tile_devices:
+            tile_devices += b"".join(
+                little_endian(bitstring.pack("int:16", tile_device["accel_meas_x"])),
+                little_endian(bitstring.pack("int:16", tile_device["accel_meas_y"])),
+                little_endian(bitstring.pack("int:16", tile_device["accel_meas_z"])),
+                little_endian(bitstring.pack("float", tile_device["user_x"])),
+                little_endian(bitstring.pack("float", tile_device["user_y"])),
+                little_endian(bitstring.pack("uint:8", tile_device["width"])),
+                little_endian(bitstring.pack("uint:8", tile_device["height"])),
+                little_endian(
+                    bitstring.pack("uint:32", tile_device["device_version_vendor"])
+                ),
+                little_endian(
+                    bitstring.pack("uint:32", tile_device["device_version_product"])
+                ),
+                little_endian(bitstring.pack("uint:64", tile_device["firmware_build"])),
+                little_endian(
+                    bitstring.pack("uint:16", tile_device["firmware_version_minor"])
+                ),
+                little_endian(
+                    bitstring.pack("uint:16", tile_device["firmware_version_major"])
+                ),
+            )
+        tile_devices_count = little_endian(
+            bitstring.pack("uint:8", self.tile_devices_count)
+        )
+
+        payload = start_index + tile_devices + tile_devices_count
+        return payload
+
+
+class TileGet64(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.tile_index = payload["tile_index"]
+        self.length = payload["length"]
+        self.x = payload["x"]
+        self.y = payload["y"]
+        self.width = payload["width"]
+        super(TileGet64, self).__init__(
+            MSG_IDS[TileGet64],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        tile_index = little_endian(bitstring.pack("uint:8", self.tile_index))
+        length = little_endian(bitstring.pack("uint:8", self.length))
+        reserved = little_endian(bitstring.pack("uint:8", 0))
+        x = little_endian(bitstring.pack("uint:8", self.x))
+        y = little_endian(bitstring.pack("uint:8", self.y))
+        width = little_endian(bitstring.pack("uint:8", self.width))
+        payload = tile_index + length + reserved + x + y + width
+        return payload
+
+
+class TileSet64(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.tile_index = payload["tile_index"]
+        self.length = payload["length"]
+        self.x = payload["x"]
+        self.y = payload["y"]
+        self.width = payload["width"]
+        self.duration = payload["duration"]
+        self.colors = payload["colors"]
+        super(TileSet64, self).__init__(
+            MSG_IDS[TileSet64],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        tile_index = little_endian(bitstring.pack("uint:8", self.tile_index))
+        length = little_endian(bitstring.pack("uint:8", self.length))
+        reserved = little_endian(bitstring.pack("int:8", 0))
+        x = little_endian(bitstring.pack("uint:8", self.x))
+        y = little_endian(bitstring.pack("uint:8", self.y))
+        width = little_endian(bitstring.pack("uint:8", self.width))
+        duration = little_endian(bitstring.pack("uint:32", self.duration))
+        payload = tile_index + length + reserved + x + y + width + duration
+        for color in self.colors:
+            payload += b"".join(
+                little_endian(bitstring.pack("uint:16", field)) for field in color
+            )
+        return payload
+
+
+class TileState64(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.tile_index = payload["tile_index"]
+        self.x = payload["x"]
+        self.y = payload["y"]
+        self.width = payload["width"]
+        self.colors = payload["colors"]
+        super(TileState64, self).__init__(
+            MSG_IDS[TileState64],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        self.payload_fields.append(("Tile Index", self.tile_index))
+        self.payload_fields.append(("x", self.x))
+        self.payload_fields.append(("y", self.y))
+        self.payload_fields.append(("width", self.width))
+
+        tile_index = little_endian(bitstring.pack("uint:8", self.tile_index))
+        x = little_endian(bitstring.pack("uint:8", self.x))
+        y = little_endian(bitstring.pack("uint:8", self.y))
+        width = little_endian(bitstring.pack("uint:8", self.width))
+        payload = tile_index + x + y + width
+
+        for color in self.colors:
+            payload += b"".join(
+                little_endian(bitstring.pack("uint:16", field)) for field in color
+            )
+        return payload
+
+
 class TileGetTileEffect(Message):
     def __init__(
         self,
@@ -2198,6 +2398,11 @@ MSG_IDS = {
     MultiZoneSetExtendedColorZones: 510,
     MultiZoneGetExtendedColorZones: 511,
     MultiZoneStateExtendedColorZones: 512,
+    TileGetDeviceChain: 701,
+    TileStateDeviceChain: 702,
+    TileGet64: 707,
+    TileState64: 711,
+    TileSet64: 715,
     TileGetTileEffect: 718,
     TileSetTileEffect: 719,
     TileStateTileEffect: 720,
