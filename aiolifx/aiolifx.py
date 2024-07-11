@@ -1818,7 +1818,7 @@ class Light(Device):
             typ = effect if effect in [e.value for e in TileEffectType] else 0
 
         if typ is TileEffectType.SKY.value:
-            speed = floor(sky_speed * 1000) if sky_speed is not None else 50000
+            speed = floor(speed * 1000) if speed is not None else 50000
 
             if sky_type is None:
                 sky_type = TileEffectSkyType.CLOUDS.value
@@ -1828,6 +1828,7 @@ class Light(Device):
                 sky_type = (
                     sky_type if sky_type in [e.value for e in TileEffectSkyType] else 2
                 )
+
             if cloud_saturation_min is None:
                 cloud_saturation_min = 50
             if cloud_saturation_max is None:
@@ -1845,9 +1846,9 @@ class Light(Device):
             if len(palette) > 16:
                 palette = palette[:16]
 
-        palette_count = len(palette)
-        speed = floor(speed * 1000) if 0 < speed <= 60 else 3000
+            speed = floor(speed * 1000) if 0 < speed <= 60 else 3000
 
+        palette_count = len(palette)
         payload = {
             "type": typ,
             "speed": speed,
