@@ -37,6 +37,7 @@ from aiolifx.fixtures.fixtures import (
 )
 from aiolifx.fixtures.hev_light import HevLightMixin
 from aiolifx.fixtures.light import LightMixin
+from aiolifx.fixtures.matrix_light import MatrixLightMixin
 from aiolifx.fixtures.multizone_light import MultizoneLightMixin
 from aiolifx.fixtures.switch import SwitchMixin
 
@@ -268,10 +269,11 @@ async def readin():
                 )
                 continue
         if issubclass(fixtureType, MultizoneLightMixin):
+            print('is subclass')
             multizoneLightTypeFixture = fixtureType(
                 fixture.req_with_resp, fixture.req_with_ack, fixture.fire_and_forget
             )
-            if feature == DeviceFeatures.FIRMWARE_EFFECT:
+            if feature == DeviceFeatures.MULTIZONE_FIRMWARE_EFFECT:
                 print("Getting current firmware effect state from multizone device")
                 multizoneLightTypeFixture.get_multizone_effect(
                     callb=lambda _, r: print(
@@ -282,7 +284,7 @@ async def readin():
                     )
                 )
                 continue
-            if feature == DeviceFeatures.FIRMWARE_EFFECT_START_STOP:
+            if feature == DeviceFeatures.MULTIZONE_FIRMWARE_EFFECT_START_STOP:
                 effect = await inquirer.fuzzy(
                     message="Effect",
                     choices=["Off", "Move"],
@@ -588,6 +590,53 @@ async def readin():
                     await aio.sleep(0.5)
                 continue
 
+        if issubclass(fixtureType, MatrixLightMixin):
+            if feature == DeviceFeatures.MATRIX_FIRMWARE_EFFECT:
+
+                print("Getting current firmware effect state from matrix device")
+                device.get_tile_effect(
+                    callb=lambda _, r: print(
+                        f"\nCurrent effect={r.effect_str}"
+                        f"\nSpeed={r.speed/1000 if getattr(r, 'speed', None) is not None else 0}"
+                        f"\nDuration={r.duration/1000000000 if getattr(r, 'duration', None) is not None else 0:4f}"
+                        f"\nSky type={r.sky_type_str}"
+                        f"\nCloud saturation min={r.cloud_saturation_min}"
+                        f"\nCloud saturation max={r.cloud_saturation_max}"
+                    )
+                )
+                device = None
+            if feature == DeviceFeatures.MATRIX_FIRMWARE_EFFECT_START_STOP:
+
+                effect = await inquirer.fuzzy(
+                    message="Effect",
+                    choices=["Off", "Morph", "Flame", "Sky"],
+                ).execute_async()
+
+                if effect.lower() == "sky":
+                    sky_type = await inquirer.fuzzy(
+                        message="Sky Type", choices=["Sunrise", "Sunset", "Clouds"]
+                    ).execute_async()
+                    e = alix.aiolifx.TileEffectType[effect.upper()].value
+                    st = alix.TileEffectSkyType[sky_type.upper()].value
+                    sp = 50
+                else:
+                    e = alix.aiolifx.TileEffectType[effect.upper()].value
+                    st = None
+                    sp = 3
+
+                device.set_tile_effect(effect=e, speed=sp, sky_type=st)
+                device = None
+            if feature == DeviceFeatures.MULTIZONE_FIRMWARE_EFFECT:
+                print("Getting current firmware effect state from multizone device")
+                device.get_multizone_effect(
+                    callb=lambda _, r: print(
+                        f"\nCurrent effect={r.effect_str}"
+                        f"\nSpeed={r.speed/1000 if getattr(r, 'speed', None) is not None else 0}"
+                        f"\nDuration={r.duration/1000000000 if getattr(r, 'duration', None) is not None else 0:4f}"
+                        f"\nDirection={r.direction_str}"
+                    )
+                )
+                device = None   
         raise AssertionError(f"Invalid feature: {feature} for {fixtureType!r}")
     return
 

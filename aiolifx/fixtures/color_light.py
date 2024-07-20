@@ -10,7 +10,6 @@ class ColorLightMixin(BaseFixture):
     capabilities = [DeviceFeatures.COLOR, DeviceFeatures.PULSE]
 
     color = None
-    color_zones = None
 
     def __init__(self, req_with_resp, req_with_ack, fire_and_forget):
         super().__init__(req_with_resp, req_with_ack, fire_and_forget)

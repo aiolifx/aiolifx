@@ -22,11 +22,6 @@ MAX_UNSIGNED_16_BIT_INTEGER_VALUE = int("0xFFFF", 16)
 @dataclass
 class LightMixin(RootFixture, BaseFixture):
     capabilities = [
-        DeviceFeatures.INFO,
-        DeviceFeatures.FIRMWARE,
-        DeviceFeatures.WIFI,
-        DeviceFeatures.UPTIME,
-        DeviceFeatures.REBOOT,
         DeviceFeatures.POWER,
         DeviceFeatures.WHITE,
     ]

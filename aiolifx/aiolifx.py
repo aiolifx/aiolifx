@@ -25,7 +25,7 @@
 import asyncio as aio
 import logging
 from typing import Any, Coroutine, Optional, Set, Union
-from aiolifx.fixtures.fixtures import get_fixture, HevLight, ColorLight, MultizoneLight, Switch, Light
+from aiolifx.fixtures.fixtures import ChainLight, MatrixLight, get_fixture, HevLight, ColorLight, MultizoneLight, Switch, Light
 from .message import BROADCAST_MAC, BROADCAST_SOURCE_ID
 from .msgtypes import *
 from .products import *
@@ -153,7 +153,7 @@ class Device(aio.DatagramProtocol):
     wifi_firmware_version: str = None
     wifi_firmware_build_timestamp: float = None
     lastmsg: datetime = datetime.datetime.now()
-    fixture: Optional[Union[Switch, MultizoneLight, ColorLight, HevLight, Light]] = None
+    fixture: Optional[Union[Switch, MultizoneLight, ColorLight, HevLight, MatrixLight, ChainLight, Light]] = None
 
     def seq_next(self):
         """Method to return the next sequence value to use in messages.

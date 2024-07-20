@@ -15,7 +15,6 @@ from aiolifx.msgtypes import (
     StateHevCycle,
     StateLastHevCycleResult,
 )
-from build.lib.aiolifx.msgtypes import StateHevCycleConfiguration
 
 
 @dataclass

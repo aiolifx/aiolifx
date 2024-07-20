@@ -1,9 +1,17 @@
 from dataclasses import dataclass
 
+from aiolifx.fixtures.device_features import DeviceFeatures
+
 
 # An interface ensuring every fixture has a capabilities list
 class RootFixture:
-    capabilities = []
+    capabilities = [
+        DeviceFeatures.INFO,
+        DeviceFeatures.FIRMWARE,
+        DeviceFeatures.WIFI,
+        DeviceFeatures.UPTIME,
+        DeviceFeatures.REBOOT
+    ]
     pass
 
 
