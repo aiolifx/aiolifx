@@ -3,7 +3,8 @@
 #
 # This application is simply a bridge application for Lifx bulbs.
 #
-# Copyright (c) 2016 François Wautier
+# Copyright (c) 2016, 2024 François Wautier
+# Copyright (c) 2018, 2024 Avi Miller <me@dje.li>
 # Copyright (c) 2022 Michael Farrell <micolous+git@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy

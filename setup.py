@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 import setuptools
 
-version = "1.0.5"
+version = "1.0.6"
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -16,7 +16,7 @@ setuptools.setup(
     description="API for local communication with LIFX devices over a LAN with asyncio.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="http://github.com/frawau/aiolifx",
+    url="http://github.com/aiolifx/aiolifx",
     keywords=["lifx", "light", "automation"],
     license="MIT",
     install_requires=[
