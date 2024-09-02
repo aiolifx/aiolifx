@@ -118,10 +118,10 @@ product_map = {
     204: "LIFX String Intl",
     205: "LIFX Indoor Neon US",
     206: "LIFX Indoor Neon Intl",
-    215: "LIFX B10 Candle US",
-    216: "LIFX B10 Candle INTL",
-    217: "LIFX T10 Candle US",
-    218: "LIFX T10 Candle INTL",
+    215: "LIFX Candle Color US",
+    216: "LIFX Candle Colour Intl",
+    217: "LIFX Tube US",
+    218: "LIFX Tube Intl",
 }
 
 features_map = {
