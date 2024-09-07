@@ -24,15 +24,19 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 # IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 import asyncio as aio
+import datetime
 import logging
-from typing import Any, Coroutine, Set
-from .message import BROADCAST_MAC, BROADCAST_SOURCE_ID
+import random
+import socket
+from functools import partial
+from math import floor, ceil
+from typing import Coroutine, Set
+
+import ifaddr
+
 from .msgtypes import *
 from .products import *
 from .unpack import unpack_lifx_message
-from functools import partial
-from math import floor
-import time, random, datetime, socket, ifaddr
 
 # prevent tasks from being garbage collected
 _BACKGROUND_TASKS: Set[aio.Task] = set()
@@ -136,6 +140,8 @@ class Device(aio.DatagramProtocol):
         self.seq = 0
         # Key is the message sequence, value is (Response, Event, callb )
         self.message = {}
+        # Reply queue tracks how many replies are expected for a single message
+        self.reply_queue = {}
         self.source_id = random.randint(0, (2**32) - 1)
         # Default callback for unexpected messages
         self.default_callb = None
@@ -189,6 +195,7 @@ class Device(aio.DatagramProtocol):
                 if myevent:
                     myevent.set()
         self.message.clear()
+        self.reply_queue.clear()
 
     def datagram_received(self, data, addr):
         """Method run when data is received from the device
@@ -209,8 +216,12 @@ class Device(aio.DatagramProtocol):
         self.lastmsg = datetime.datetime.now()
         if response.seq_num in self.message:
             response_type, myevent, callb = self.message[response.seq_num]
-            if type(response) == response_type:
+            if isinstance(response, response_type):
                 if response.source_id == self.source_id:
+                    replies = 0
+                    if self.reply_queue.get(response.seq_num, None):
+                        self.reply_queue[response.seq_num] -= 1
+                        replies = self.reply_queue[response.seq_num]
                     if "State" in response.__class__.__name__:
                         setmethod = (
                             "resp_set_"
@@ -221,9 +232,14 @@ class Device(aio.DatagramProtocol):
                             method(response)
                     if callb:
                         callb(self, response)
-                    myevent.set()
-                del self.message[response.seq_num]
-            elif type(response) == Acknowledgement:
+                    if replies == 0:
+                        if response.seq_num in self.reply_queue:
+                            del self.reply_queue[response.seq_num]
+                        del self.message[response.seq_num]
+                        myevent.set()
+                else:
+                    del self.message[response.seq_num]
+            elif isinstance(response, Acknowledgement):
                 pass
             else:
                 del self.message[response.seq_num]
@@ -346,7 +362,7 @@ class Device(aio.DatagramProtocol):
                 async with asyncio_timeout(timeout_secs):
                     await event.wait()
                 break
-            except Exception as inst:
+            except TimeoutError:
                 if attempts >= max_attempts:
                     if msg.seq_num in self.message:
                         callb = self.message[msg.seq_num][2]
@@ -414,6 +430,8 @@ class Device(aio.DatagramProtocol):
         :returns: True
         :rtype: bool
         """
+        replies = payload.pop("replies", None)
+
         msg = msg_type(
             self.mac_addr,
             self.source_id,
@@ -422,7 +440,10 @@ class Device(aio.DatagramProtocol):
             ack_requested=False,
             response_requested=True,
         )
+
         self.message[msg.seq_num] = [response_type, None, callb]
+        if replies is not None:
+            self.reply_queue[msg.seq_num] = replies
         _create_background_task(self.try_sending(msg, timeout_secs, max_attempts))
         return True
 
@@ -1074,6 +1095,47 @@ class Light(Device):
             self.label = resp.label.decode().replace("\x00", "")
 
     # Multizone
+    def get_all_color_zones(self, zones_count=None, callb=None):
+        """
+        Convenience method to request the state of all colour zones.
+
+        This method uses legacy messages, is inefficient and should only be used for
+        very old LIFX Z products that don't support extended multizone messages.
+
+        If you know the number of zones on the device, you can specify it with the zones_count
+        parameter.
+
+        If you provide a method via the callb parameter, it must be capable of accepting
+        multiple replies from a single request. The index field of the reply should be used
+        to determine the starting zone for the eight colors contained in that reply.
+
+        For devices that support multizone messages, use get_extended_color_zones().
+
+        Use get_color_zones() to request the state of a subset of zones on a device.
+
+            :param zones_count: The number of zones on the device.
+            :type zones_count: int
+            :param callb: method to be called when the response is received.
+            :type callb: callable
+            :returns: None
+            :rtype: None
+        """
+        start_index = 0
+        end_index = 255
+        if zones_count is not None and self.zones_count == 1:
+            self.zones_count = zones_count
+            self.color_zones = [None] * zones_count
+
+        if self.zones_count > 1:
+            end_index = self.zones_count - 1
+
+        replies = max(1, ceil((end_index - start_index) / 8))
+        args = {"start_index": start_index, "end_index": end_index, "replies": replies}
+
+        self.req_with_resp(
+            MultiZoneGetColorZones, MultiZoneStateMultiZone, payload=args, callb=callb
+        )
+
     def get_color_zones(self, start_index, end_index=None, callb=None):
         """Convenience method to request the state of colour by zones from the device
 
@@ -1162,20 +1224,20 @@ class Light(Device):
                 for i in range(args["start_index"], args["end_index"] + 1):
                     self.color_zones[i] = args["color"]
         elif resp:
+            if resp.seq_num in self.reply_queue:
+                if self.reply_queue[resp.seq_num] == 31:
+                    actual_replies = max(1, ceil(resp.count / 8))
+                    self.reply_queue[resp.seq_num] = actual_replies
+
+            if self.zones_count == 1:
+                self.zones_count = resp.count
             if self.color_zones is None:
                 self.color_zones = [None] * resp.count
-            try:
-                for i in range(resp.index, min(resp.index + 8, resp.count)):
-                    if i > len(self.color_zones) - 1:
-                        self.color_zones += [resp.color[i - resp.index]] * (
-                            i - len(self.color_zones)
-                        )
-                        self.color_zones.append(resp.color[i - resp.index])
-                    else:
-                        self.color_zones[i] = resp.color[i - resp.index]
-            except:
-                # I guess this should not happen but...
-                pass
+
+            for index, color in enumerate(resp.color):
+                if index + resp.index >= resp.count:
+                    break
+                self.color_zones[index + resp.index] = color
 
     def get_multizone_effect(self, callb=None):
         """Convenience method to get the currently running firmware effect on the device.
@@ -1298,10 +1360,14 @@ class Light(Device):
         a single request.
 
         The device must have the extended_multizone feature to use this method.
-        There must be 82 color tuples in the colors list regardless of how many
-        zones the device has. Use the colors_count parameter to specify the number
-        of colors from the colors list that should be applied to the device and
-        use the zone_index parameter to specify the starting zone.
+
+        There must be at least as many colours in the list provided as the number of zones
+        on the target device. If there are more colours than zones, the extra colours are
+        ignored. If there are fewer colours than zones, the zone_index will determine where
+        on the device the colours are applied.
+
+        This method will automatically send multiple messages if the target device has more
+        than 82 zones, which is the limit for a single message.
 
         :param colors List of color dictionaries with HSBK keys
         :type colors List[dict[str, int]]
@@ -1318,37 +1384,34 @@ class Light(Device):
         :returns None
         :rtype None
         """
-        if len(colors) == 82:
+        segments = max(1, floor(len(colors) / 82) + 1)
+        for i in range(segments):
+            zone_index = i * 82
+            colors_count = min(zone_index + 82, len(colors) - i * 82)
             args = {
                 "duration": duration,
                 "apply": apply,
                 "zone_index": zone_index,
                 "colors_count": colors_count,
-                "colors": colors,
+                "colors": colors[zone_index : zone_index + colors_count],
             }
-            mypartial = partial(self.resp_set_multizoneextendedcolorzones, args=args)
-
-            if callb:
-                mycallb = lambda x, y: (mypartial(y), callb(x, y))
-            else:
-                mycallb = lambda x, y: mypartial(y)
 
             if rapid:
                 self.fire_and_forget(
                     MultiZoneSetExtendedColorZones, args, num_repeats=1
                 )
-                mycallb(self, None)
             else:
-                self.req_with_ack(MultiZoneSetExtendedColorZones, args, callb=mycallb)
+                self.req_with_ack(MultiZoneSetExtendedColorZones, args, callb=callb)
 
     def resp_set_multizoneextendedcolorzones(self, resp, args=None):
         """Default callback for get_extended_color_zones"""
-        if args:
-            if self.color_zones:
-                for i in range(args["zone_index"], args["colors_count"]):
-                    self.color_zones[i] = args["colors"][i]
+        if resp:
+            if self.zones_count == 1:
+                self.zones_count = resp.zones_count
+                self.color_zones = [None] * resp.zones_count
+                if resp.zones_count > 82:
+                    return self.get_extended_color_zones()
 
-        elif resp:
             self.zones_count = resp.zones_count
             self.color_zones = resp.colors[resp.zone_index : resp.colors_count]
 
@@ -1671,21 +1734,21 @@ class Light(Device):
         if products_dict[self.product].chain is True:
             length = 5
 
-        for i in range(tile_index, length):
-            args = {
-                "tile_index": i,
-                "length": 1,
-                "x": 0,
-                "y": 0,
-                "width": width,
-            }
+        args = {
+            "tile_index": tile_index,
+            "length": length,
+            "x": 0,
+            "y": 0,
+            "width": width,
+            "replies": length,
+        }
 
-            self.req_with_resp(
-                msg_type=TileGet64, response_type=TileState64, payload=args, callb=callb
-            )
+        self.req_with_resp(
+            msg_type=TileGet64, response_type=TileState64, payload=args, callb=callb
+        )
 
     def resp_set_tile64(self, resp):
-        if resp and isinstance(resp, TileState64):
+        if resp:
             self.chain[resp.tile_index] = resp.colors
             self.chain_length = len(self.chain)
 
@@ -1876,7 +1939,7 @@ class Light(Device):
                 self.effect["duration"] = (
                     0.0
                     if resp.duration == 0
-                    else float(f"{resp.duration/1000000000:4f}")
+                    else float(f"{resp.duration / 1000000000:4f}")
                 )
                 if resp.effect == TileEffectType.SKY.value:
                     self.effect["sky_type"] = TileEffectSkyType(
