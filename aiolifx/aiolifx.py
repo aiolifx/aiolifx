@@ -1323,7 +1323,7 @@ class Light(Device):
                     resp.direction
                 ).name.capitalize()
 
-    def get_extended_color_zones(self, callb=None):
+    def get_extended_color_zones(self, zones_count=None, callb=None):
         """
         Convenience method to request the state of all zones of a multizone device
         in a single request.
@@ -1339,9 +1339,18 @@ class Light(Device):
         :returns: None
         :rtype: None
         """
+        if zones_count is not None and self.zones_count == 1:
+            self.zones_count = zones_count
+            self.color_zones = [None] * zones_count
+
+        args = {}
+        if self.zones_count > 1:
+            args["replies"] = max(1, ceil(self.zones_count / 82) + 1)
+
         self.req_with_resp(
             MultiZoneGetExtendedColorZones,
             MultiZoneStateExtendedColorZones,
+            args,
             callb=callb,
         )
 
@@ -1403,17 +1412,18 @@ class Light(Device):
             else:
                 self.req_with_ack(MultiZoneSetExtendedColorZones, args, callb=callb)
 
-    def resp_set_multizoneextendedcolorzones(self, resp, args=None):
+    def resp_set_multizoneextendedcolorzones(self, resp):
         """Default callback for get_extended_color_zones"""
         if resp:
             if self.zones_count == 1:
                 self.zones_count = resp.zones_count
                 self.color_zones = [None] * resp.zones_count
-                if resp.zones_count > 82:
-                    return self.get_extended_color_zones()
+                return self.get_extended_color_zones()
 
-            self.zones_count = resp.zones_count
-            self.color_zones = resp.colors[resp.zone_index : resp.colors_count]
+            for index, color in enumerate(resp.colors):
+                if index + resp.zone_index >= resp.zones_count:
+                    break
+                self.color_zones[index + resp.zone_index] = color
 
     # value should be a dictionary with the the following keys: transient, color, period, cycles, skew_ratio, waveform
     def set_waveform(self, value, callb=None, rapid=False):
