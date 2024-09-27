@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 #
 # This application is an example on how to use aiolifx
