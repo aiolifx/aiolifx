@@ -488,29 +488,8 @@ async def readin():
         elif feature == DeviceFeatures.BUTTON_CONFIG:
 
             def callback(x, buttonConfig):
+
                 def get_backlight_str(backlight):
-                    # Switch returns the kelvin value as a byte, so we need to convert it to a kelvin value
-                    # The kelvin value is reversed (higher byte value = lower kelvin).
-                    # Below 10495 and above 56574 are outside the range of supported Kelvin values
-                    def get_kelvin(byte_value):
-                        MIN_KELVIN_VALUE = 1500
-                        MAX_KELVIN_VALUE = 9000
-                        KELVIN_RANGE = MAX_KELVIN_VALUE - MIN_KELVIN_VALUE
-                        MIN_BYTE_VALUE = 10495  # 9000 Kelvin
-                        MAX_BYTE_VALUE = 56575  # 1500 Kelvin
-                        BYTE_RANGE = MAX_BYTE_VALUE - MIN_BYTE_VALUE
-                        if byte_value <= MIN_BYTE_VALUE:
-                            return MAX_KELVIN_VALUE
-                        elif byte_value < MAX_BYTE_VALUE:
-                            return int(
-                                round(
-                                    MAX_KELVIN_VALUE
-                                    - ((byte_value - MIN_BYTE_VALUE) / BYTE_RANGE)
-                                    * KELVIN_RANGE
-                                )
-                            )
-                        else:
-                            return MIN_KELVIN_VALUE
 
                     backlight_color = {
                         "hue": int(round(360 * (backlight["hue"] / 65535))),
@@ -520,7 +499,7 @@ async def readin():
                         "brightness": int(
                             round(100 * (backlight["brightness"] / 65535))
                         ),
-                        "kelvin": get_kelvin(backlight["kelvin"]),
+                        "kelvin": backlight["kelvin"],
                     }
                     return (
                         f"\n\tHue: {backlight_color['hue']},\n"
@@ -640,7 +619,7 @@ async def amain():
         discovery.start()
         print("Starting")
         # Wait to discover bulbs
-        await aio.sleep(1)
+        await aio.sleep(2)
         print("Use Ctrl-C to quit")
         print("Start typing or use arrow keys to navigate, and enter to select.")
         await readin()

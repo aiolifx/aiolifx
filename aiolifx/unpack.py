@@ -681,12 +681,12 @@ def unpack_lifx_message(packed_message):
         )
 
     elif message_type == MSG_IDS[StateButtonConfig]:  # 911
-        haptic_duration_ms = struct.unpack("B", payload_str[:1])[0]
+        haptic_duration_ms = struct.unpack("H", payload_str[0:2])[0]
 
-        backlight_on_color_values = payload_str[1:9]
+        backlight_on_color_values = payload_str[2:10]
         backlight_on_color = getBacklightColor(backlight_on_color_values)
 
-        backlight_off_color_values = payload_str[9:17]
+        backlight_off_color_values = payload_str[10:18]
         backlight_off_color = getBacklightColor(backlight_off_color_values)
 
         payload = {

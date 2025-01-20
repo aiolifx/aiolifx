@@ -241,8 +241,8 @@ def readin():
                         MyBulbs.boi.get_multizone_effect(
                             callb=lambda _, r: print(
                                 f"\nCurrent effect={r.effect_str}"
-                                f"\nSpeed={r.speed/1000 if getattr(r, 'speed', None) is not None else 0}"
-                                f"\nDuration={r.duration/1000000000 if getattr(r, 'duration', None) is not None else 0:4f}"
+                                f"\nSpeed={r.speed / 1000 if getattr(r, 'speed', None) is not None else 0}"
+                                f"\nDuration={r.duration / 1000000000 if getattr(r, 'duration', None) is not None else 0:4f}"
                                 f"\nDirection={r.direction_str}"
                             )
                         )
@@ -407,32 +407,6 @@ def readin():
                     if alix.aiolifx.features_map[MyBulbs.boi.product]["relays"] is True:
 
                         def callback(x, buttonConfig):
-                            # Switch returns the kelvin value as a byte, so we need to convert it to a kelvin value
-                            # The kelvin value is reversed (higher byte value = lower kelvin).
-                            # Below 10495 and above 56574 are outside the range of supported Kelvin values
-                            def get_kelvin(byte_value):
-                                MIN_KELVIN_VALUE = 1500
-                                MAX_KELVIN_VALUE = 9000
-                                KELVIN_RANGE = MAX_KELVIN_VALUE - MIN_KELVIN_VALUE
-                                MIN_BYTE_VALUE = 10495  # 9000 Kelvin
-                                MAX_BYTE_VALUE = 56575  # 1500 Kelvin
-                                BYTE_RANGE = MAX_BYTE_VALUE - MIN_BYTE_VALUE
-                                if byte_value <= MIN_BYTE_VALUE:
-                                    return MAX_KELVIN_VALUE
-                                elif byte_value < MAX_BYTE_VALUE:
-                                    return int(
-                                        round(
-                                            MAX_KELVIN_VALUE
-                                            - (
-                                                (byte_value - MIN_BYTE_VALUE)
-                                                / BYTE_RANGE
-                                            )
-                                            * KELVIN_RANGE
-                                        )
-                                    )
-                                else:
-                                    return MIN_KELVIN_VALUE
-
                             backlight_on_color = {
                                 "hue": int(
                                     round(
@@ -465,9 +439,7 @@ def readin():
                                         )
                                     )
                                 ),
-                                "kelvin": get_kelvin(
-                                    buttonConfig.backlight_on_color["kelvin"]
-                                ),
+                                "kelvin": buttonConfig.backlight_on_color["kelvin"],
                             }
                             backlight_on_color_str = f"hue: {backlight_on_color['hue']}, saturation: {backlight_on_color['saturation']}, brightness: {backlight_on_color['brightness']}, kelvin: {backlight_on_color['kelvin']}"
                             backlight_off_color = {
@@ -502,9 +474,7 @@ def readin():
                                         )
                                     )
                                 ),
-                                "kelvin": get_kelvin(
-                                    buttonConfig.backlight_off_color["kelvin"]
-                                ),
+                                "kelvin": buttonConfig.backlight_off_color["kelvin"],
                             }
                             backlight_off_color_str = f"hue: {backlight_off_color['hue']}, saturation: {backlight_off_color['saturation']}, brightness: {backlight_off_color['brightness']}, kelvin: {backlight_off_color['kelvin']}"
                             return print(
