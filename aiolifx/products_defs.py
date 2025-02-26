@@ -126,6 +126,7 @@ product_map = {
     216: "LIFX Candle Colour Intl",
     217: "LIFX Tube US",
     218: "LIFX Tube Intl",
+    219: "LIFX PAR38 Intl",
 }
 
 features_map = {
@@ -1774,6 +1775,19 @@ features_map = {
         "hev": False,
         "infrared": False,
         "matrix": True,
+        "max_kelvin": 9000,
+        "min_kelvin": 1500,
+        "multizone": False,
+        "relays": False,
+    },
+    219: {
+        "buttons": False,
+        "chain": False,
+        "color": True,
+        "extended_multizone": False,
+        "hev": False,
+        "infrared": False,
+        "matrix": False,
         "max_kelvin": 9000,
         "min_kelvin": 1500,
         "multizone": False,
