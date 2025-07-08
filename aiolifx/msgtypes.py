@@ -1840,6 +1840,7 @@ class TileSet64(Message):
     ):
         self.tile_index = payload["tile_index"]
         self.length = payload["length"]
+        self.fb_index = payload["fb_index"]
         self.x = payload["x"]
         self.y = payload["y"]
         self.width = payload["width"]
@@ -1857,12 +1858,12 @@ class TileSet64(Message):
     def get_payload(self):
         tile_index = little_endian(bitstring.pack("uint:8", self.tile_index))
         length = little_endian(bitstring.pack("uint:8", self.length))
-        reserved = little_endian(bitstring.pack("int:8", 0))
+        fb_index = little_endian(bitstring.pack("uint:8", self.fb_index))
         x = little_endian(bitstring.pack("uint:8", self.x))
         y = little_endian(bitstring.pack("uint:8", self.y))
         width = little_endian(bitstring.pack("uint:8", self.width))
         duration = little_endian(bitstring.pack("uint:32", self.duration))
-        payload = tile_index + length + reserved + x + y + width + duration
+        payload = tile_index + length + fb_index + x + y + width + duration
         for color in self.colors:
             payload += b"".join(
                 little_endian(bitstring.pack("uint:16", field)) for field in color
@@ -1910,6 +1911,81 @@ class TileState64(Message):
             payload += b"".join(
                 little_endian(bitstring.pack("uint:16", field)) for field in color
             )
+        return payload
+
+
+class TileCopyFrameBuffer(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        super(TileCopyFrameBuffer, self).__init__(
+            MSG_IDS[TileCopyFrameBuffer],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+        self.tile_index = payload["tile_index"]
+        self.length = payload["length"]
+        self.src_fb_index = payload["src_fb_index"]
+        self.dst_fb_index = payload["dst_fb_index"]
+        self.src_x = payload["src_x"]
+        self.src_y = payload["src_y"]
+        self.dst_x = payload["dst_x"]
+        self.dst_y = payload["dst_y"]
+        self.width = payload["width"]
+        self.height = payload["height"]
+        self.duration = payload["duration"]
+
+    def get_payload(self):
+        self.payload_fields.append(("Tile Index", self.tile_index))
+        self.payload_fields.append(("Length", self.length))
+        self.payload_fields.append(("Source Frame Buffer Index", self.src_fb_index))
+        self.payload_fields.append(
+            ("Destination Frame Buffer Index", self.dst_fb_index)
+        )
+        self.payload_fields.append(("Source X", self.src_x))
+        self.payload_fields.append(("Source Y", self.src_y))
+        self.payload_fields.append(("Destination X", self.dst_x))
+        self.payload_fields.append(("Destination Y", self.dst_y))
+        self.payload_fields.append(("Width", self.width))
+        self.payload_fields.append(("Height", self.height))
+        self.payload_fields.append(("Duration", self.duration))
+
+        tile_index = little_endian(bitstring.pack("uint:8", self.tile_index))
+        length = little_endian(bitstring.pack("uint:8", self.length))
+        src_fb_index = little_endian(bitstring.pack("uint:8", self.src_fb_index))
+        dst_fb_index = little_endian(bitstring.pack("uint:8", self.dst_fb_index))
+        src_x = little_endian(bitstring.pack("uint:8", self.src_x))
+        src_y = little_endian(bitstring.pack("uint:8", self.src_y))
+        dst_x = little_endian(bitstring.pack("uint:8", self.dst_x))
+        dst_y = little_endian(bitstring.pack("uint:8", self.dst_y))
+        width = little_endian(bitstring.pack("uint:8", self.width))
+        height = little_endian(bitstring.pack("uint:8", self.height))
+        duration = little_endian(bitstring.pack("uint:32", self.duration))
+        reserved1 = little_endian(bitstring.pack("int:8", 0))
+
+        payload = (
+            tile_index
+            + length
+            + src_fb_index
+            + dst_fb_index
+            + src_x
+            + src_y
+            + dst_x
+            + dst_y
+            + width
+            + height
+            + duration
+            + reserved1
+        )
         return payload
 
 
@@ -2403,6 +2479,7 @@ MSG_IDS = {
     TileGet64: 707,
     TileState64: 711,
     TileSet64: 715,
+    TileCopyFrameBuffer: 716,
     TileGetTileEffect: 718,
     TileSetTileEffect: 719,
     TileStateTileEffect: 720,

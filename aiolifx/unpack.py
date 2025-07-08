@@ -559,6 +559,35 @@ def unpack_lifx_message(packed_message):
             target_addr, source_id, seq_num, payload, ack_requested, response_requested
         )
 
+    elif message_type == MSG_IDS[TileCopyFrameBuffer]:  # 716
+        tile_index = struct.unpack("B", payload_str[0:1])[0]
+        length = struct.unpack("B", payload_str[1:2])[0]
+        src_fb_index = struct.unpack("B", payload_str[2:3])[0]
+        dst_fb_index = struct.unpack("B", payload_str[3:4])[0]
+        src_x = struct.unpack("B", payload_str[4:5])[0]
+        src_y = struct.unpack("B", payload_str[5:6])[0]
+        dst_x = struct.unpack("B", payload_str[6:7])[0]
+        dst_y = struct.unpack("B", payload_str[7:8])[0]
+        width = struct.unpack("B", payload_str[8:9])[0]
+        height = struct.unpack("B", payload_str[9:10])[0]
+        duration = struct.unpack("I", payload_str[10:14])[0]
+        payload = {
+            "tile_index": tile_index,
+            "length": length,
+            "src_fb_index": src_fb_index,
+            "dst_fb_index": dst_fb_index,
+            "src_x": src_x,
+            "src_y": src_y,
+            "dst_x": dst_x,
+            "dst_y": dst_y,
+            "width": width,
+            "height": height,
+            "duration": duration,
+        }
+        message = TileCopyFrameBuffer(
+            target_addr, source_id, seq_num, payload, ack_requested, response_requested
+        )
+
     elif message_type == MSG_IDS[TileStateTileEffect]:  # 720
         instanceid = struct.unpack("I", payload_str[1:5])[0]
         effect = struct.unpack("B", payload_str[5:6])[0]
@@ -750,7 +779,7 @@ def getTile(payload_str):
     user_y = struct.unpack("f", payload_str[12:16])[0]
     width = struct.unpack("B", payload_str[16:17])[0]
     height = struct.unpack("B", payload_str[17:18])[0]
-    # 18:19
+    supported_frame_buffers = struct.unpack("B", payload_str[18:19])[0]
     device_version_vendor = struct.unpack("I", payload_str[19:23])[0]
     device_version_product = struct.unpack("I", payload_str[23:27])[0]
     # 27:31
@@ -768,6 +797,7 @@ def getTile(payload_str):
         "user_y": user_y,
         "width": width,
         "height": height,
+        "supported_frame_buffers": supported_frame_buffers,
         "device_version_vendor": device_version_vendor,
         "device_version_product": device_version_product,
         "firmware_build": firmware_build,

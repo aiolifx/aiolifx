@@ -1718,7 +1718,7 @@ class Light(Device):
             self.tile_devices_count = resp.tile_devices_count
             self.tile_device_width = self.tile_devices[0]["width"]
 
-    def get64(self, tile_index=0, length=1, width=None, callb=None):
+    def get64(self, tile_index=0, length=1, x=0, y=0, width=None, callb=None):
         """Convenience method to get the state of zones on tiles in a chain.
 
         This method populates returns the state of at least one but up to
@@ -1747,8 +1747,8 @@ class Light(Device):
         args = {
             "tile_index": tile_index,
             "length": length,
-            "x": 0,
-            "y": 0,
+            "x": x,
+            "y": y,
             "width": width,
             "replies": length,
         }
@@ -1759,11 +1759,31 @@ class Light(Device):
 
     def resp_set_tile64(self, resp):
         if resp:
-            self.chain[resp.tile_index] = resp.colors
+            start_zone = resp.y * resp.width
+
+            if self.chain.get(resp.tile_index) is None:
+                self.chain[resp.tile_index] = []
+
+            if len(self.chain[resp.tile_index]) < start_zone + len(resp.colors):
+                self.chain[resp.tile_index].extend(resp.colors)
+            else:
+                self.chain[resp.tile_index][
+                    start_zone : start_zone + len(resp.colors)
+                ] = resp.colors
+
             self.chain_length = len(self.chain)
 
     def set64(
-        self, tile_index=0, x=0, y=0, width=None, duration=0, colors=None, callb=None
+        self,
+        tile_index=0,
+        length=1,
+        fb_index=0,
+        x=0,
+        y=0,
+        width=None,
+        duration=0,
+        colors=None,
+        callb=None,
     ):
         """Convenience method to set 64 colors on a tile.
 
@@ -1784,6 +1804,10 @@ class Light(Device):
 
         :param tile_index: the starting tile in a chain to target
         :type tile_index: int
+        :param length: how many tiles to target including the starting tile
+        :type length: int
+        :param fb_index: the framebuffer index to target on the target tile (0 is visible)
+        :type fb_index: int
         :param x: the starting column to target on the target tile
         :type x: int
         :param y: the starting row to target on the target tile
@@ -1811,7 +1835,8 @@ class Light(Device):
 
         payload = {
             "tile_index": tile_index,
-            "length": 1,
+            "length": length,
+            "fb_index": fb_index,
             "x": x,
             "y": y,
             "width": width,
@@ -1819,7 +1844,78 @@ class Light(Device):
             "colors": colors,
         }
 
-        self.fire_and_forget(TileSet64, payload)
+        self.req_with_ack(TileSet64, payload)
+
+    def copy_frame_buffer(
+        self,
+        tile_index=0,
+        length=1,
+        src_fb_index=1,
+        dst_fb_index=0,
+        src_x=0,
+        src_y=0,
+        dst_x=0,
+        dst_y=0,
+        width=None,
+        height=None,
+        duration=0,
+        callb=None,
+    ):
+        """Copy a frame buffer to another index allowing set64 to set more than 64 zones at once.
+
+        The visible framebuffer is 0, the first framebuffer is 1, and so on. To smoothly transition
+        from one framebuffer to another, you can use the duration parameter. First, use set64 multiple
+        times to set the zones on the non-visible framebuffer, then use this method to copy the
+        non-visible framebuffer to the visible framebuffer.
+
+        :param tile_index: the starting tile in a chain to target
+        :type tile_index: int
+        :param length: how many tiles to target including the starting tile
+        :type length: int
+        :param src_fb_index: the framebuffer index to copy from
+        :type src_fb_index: int
+        :param dst_fb_index: the framebuffer index to copy to
+        :type dst_fb_index: int
+        :param src_x: the starting column to copy from on the source tile
+        :type src_x: int
+        :param src_y: the starting row to copy from on the source tile
+        :type src_y: int
+        :param dst_x: the starting column to copy to on the destination tile
+        :type dst_x: int
+        :param dst_y: the starting row to copy to on the destination tile
+        :type dst_y: int
+        :param width: how many zones per row on the target tile
+        :type width: int
+        :param duration: how long in seconds to transition to the new colors
+        :type duration: int
+        :param callb: Callable to be used when the response is received.
+        :type callb: callable
+        :returns: None
+        :rtype: None
+        """
+        if width is None:
+            if self.tile_device_width == 0:
+                return
+            width = self.tile_device_width
+
+        if height is None:
+            height = 8
+
+        payload = {
+            "tile_index": tile_index,
+            "length": length,
+            "src_fb_index": src_fb_index,
+            "dst_fb_index": dst_fb_index,
+            "src_x": src_x,
+            "src_y": src_y,
+            "dst_x": dst_x,
+            "dst_y": dst_y,
+            "width": width,
+            "height": height,
+            "duration": duration * 1000,
+        }
+
+        self.req_with_ack(TileCopyFrameBuffer, payload, callb=callb)
 
     def get_tile_effect(self, callb=None):
         """Convenience method to get the currently running effect on a Tile or Candle.

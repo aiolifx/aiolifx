@@ -316,13 +316,12 @@ async def readin():
 
             device = None
         elif feature == DeviceFeatures.MATRIX_FIRMWARE_EFFECT:
-
             print("Getting current firmware effect state from matrix device")
             device.get_tile_effect(
                 callb=lambda _, r: print(
                     f"\nCurrent effect={r.effect_str}"
-                    f"\nSpeed={r.speed/1000 if getattr(r, 'speed', None) is not None else 0}"
-                    f"\nDuration={r.duration/1000000000 if getattr(r, 'duration', None) is not None else 0:4f}"
+                    f"\nSpeed={r.speed / 1000 if getattr(r, 'speed', None) is not None else 0}"
+                    f"\nDuration={r.duration / 1000000000 if getattr(r, 'duration', None) is not None else 0:4f}"
                     f"\nSky type={r.sky_type_str}"
                     f"\nCloud saturation min={r.cloud_saturation_min}"
                     f"\nCloud saturation max={r.cloud_saturation_max}"
@@ -330,7 +329,6 @@ async def readin():
             )
             device = None
         elif feature == DeviceFeatures.MATRIX_FIRMWARE_EFFECT_START_STOP:
-
             effect = await inquirer.fuzzy(
                 message="Effect",
                 choices=["Off", "Morph", "Flame", "Sky"],
@@ -351,19 +349,17 @@ async def readin():
             device.set_tile_effect(effect=e, speed=sp, sky_type=st)
             device = None
         elif feature == DeviceFeatures.MULTIZONE_FIRMWARE_EFFECT:
-
             print("Getting current firmware effect state from multizone device")
             device.get_multizone_effect(
                 callb=lambda _, r: print(
                     f"\nCurrent effect={r.effect_str}"
-                    f"\nSpeed={r.speed/1000 if getattr(r, 'speed', None) is not None else 0}"
-                    f"\nDuration={r.duration/1000000000 if getattr(r, 'duration', None) is not None else 0:4f}"
+                    f"\nSpeed={r.speed / 1000 if getattr(r, 'speed', None) is not None else 0}"
+                    f"\nDuration={r.duration / 1000000000 if getattr(r, 'duration', None) is not None else 0:4f}"
                     f"\nDirection={r.direction_str}"
                 )
             )
             device = None
         elif feature == DeviceFeatures.MULTIZONE_FIRMWARE_EFFECT_START_STOP:
-
             effect = await inquirer.fuzzy(
                 message="Effect",
                 choices=["Off", "Move"],
@@ -386,7 +382,7 @@ async def readin():
             print("Getting current HEV configuration")
             device.get_hev_configuration(
                 callb=lambda _, r: print(
-                    f"\nHEV: indication={r.indication}, " f"duration={r.duration}"
+                    f"\nHEV: indication={r.indication}, duration={r.duration}"
                 )
             )
 
@@ -412,7 +408,7 @@ async def readin():
                     indication=indication,
                     duration=duration,
                     callb=lambda _, r: print(
-                        f"\nHEV: indication={r.indication}, " f"duration={r.duration}"
+                        f"\nHEV: indication={r.indication}, duration={r.duration}"
                     ),
                 )
             device = None
@@ -488,9 +484,7 @@ async def readin():
         elif feature == DeviceFeatures.BUTTON_CONFIG:
 
             def callback(x, buttonConfig):
-
                 def get_backlight_str(backlight):
-
                     backlight_color = {
                         "hue": int(round(360 * (backlight["hue"] / 65535))),
                         "saturation": int(
