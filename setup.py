@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 import setuptools
 
-version = "1.1.5"
+version = "1.2.0"
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
