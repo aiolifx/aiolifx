@@ -1730,6 +1730,10 @@ class Light(Device):
         :type tile_index: int
         :param length: how many tiles to target including the starting tile
         :type length: int
+        :param x: the starting column to target on the target tile
+        :type x: int
+        :param y: the starting row to target on the target tile
+        :type y: int
         :param width: how many zones per row on the target tile
         :type width: int
         :param callb: Callable to be used when the response is received.
@@ -1764,13 +1768,15 @@ class Light(Device):
             if self.chain.get(resp.tile_index) is None:
                 self.chain[resp.tile_index] = []
 
-            if len(self.chain[resp.tile_index]) < start_zone + len(resp.colors):
-                self.chain[resp.tile_index].extend(resp.colors)
-            else:
-                self.chain[resp.tile_index][
-                    start_zone : start_zone + len(resp.colors)
-                ] = resp.colors
+            required_length = start_zone + len(resp.colors)
+            if len(self.chain[resp.tile_index]) < required_length:
+                self.chain[resp.tile_index].extend(
+                    [None] * (required_length - len(self.chain[resp.tile_index]))
+                )
 
+            self.chain[resp.tile_index][
+                start_zone : start_zone + len(resp.colors)
+            ] = resp.colors
             self.chain_length = len(self.chain)
 
     def set64(
@@ -1886,6 +1892,8 @@ class Light(Device):
         :type dst_y: int
         :param width: how many zones per row on the target tile
         :type width: int
+        :param height: how many rows to copy from the source tile
+        :type height: int
         :param duration: how long in seconds to transition to the new colors
         :type duration: int
         :param callb: Callable to be used when the response is received.
