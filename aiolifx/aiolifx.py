@@ -1824,6 +1824,8 @@ class Light(Device):
         :type duration: int
         :param colors: up to 64 color tuples to apply to the target zones
         :type colors: list[tuple[int, float, float, int]]
+        :param callb: Callable to be used when the response is received.
+        :type callb: callable
         :rtype: None
         """
 
@@ -1850,7 +1852,7 @@ class Light(Device):
             "colors": colors,
         }
 
-        self.req_with_ack(TileSet64, payload)
+        self.req_with_ack(TileSet64, payload, callb=callb)
 
     def copy_frame_buffer(
         self,
