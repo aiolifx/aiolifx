@@ -2499,7 +2499,7 @@ class LifxScan:
             lifx_discovery.start(listen_ip=ip)
             tasks.append(aio.create_task(manager.lifx_ip()))
 
-        (done, pending) = await aio.wait(tasks, timeout=timeout)
+        done, pending = await aio.wait(tasks, timeout=timeout)
 
         for discovery in discoveries:
             discovery.cleanup()

@@ -4,7 +4,6 @@ import requests
 import json
 import pprint
 
-
 product_map = {}
 features_map = {}
 for url in ["https://raw.githubusercontent.com/LIFX/products/master/products.json"]:
