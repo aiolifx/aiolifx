@@ -25,6 +25,7 @@
 # IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 import asyncio as aio
 import datetime
+import ipaddress
 import logging
 import random
 import socket
@@ -94,7 +95,43 @@ def mac_to_ipv6_linklocal(mac, prefix="fe80::"):
     high1 = mac_value >> 24 & 0xFF
     low1 = mac_value >> 16 & 0xFF
     low2 = mac_value & 0xFFFF
-    return prefix + ":{:04x}:{:02x}ff:fe{:02x}:{:04x}".format(high2, high1, low1, low2)
+    suffix = "{:04x}:{:02x}ff:fe{:02x}:{:04x}".format(high2, high1, low1, low2)
+    # Join so that every conventional prefix form yields a valid address:
+    # a full /64 prefix ("fd00:1:2:3", "fd00:1:2:3:" or "fe80::") is joined
+    # with ":", while shorter prefixes ("fe80", "fd00:1:2:") are zero-filled
+    # with "::". The default "fe80::" used to produce an invalid triple-colon
+    # address here.
+    prefix = prefix.rstrip(":")
+    if "::" in prefix or prefix.count(":") == 3:
+        separator = ":"
+    else:
+        separator = "::"
+    return prefix + separator + suffix
+
+
+def address_family(ip_addr):
+    """Return the socket address family for the given IP address string.
+
+    IPv4 and IPv6 literals map to their respective families (e.g. Thread
+    devices reachable via IPv6 through a border router), so the socket
+    family deterministically matches the target. Anything that is not an
+    IP literal (e.g. a hostname) maps to AF_UNSPEC so that getaddrinfo
+    remains free to pick the family, as it did before this helper existed.
+
+        :param ip_addr: the IP address of the device (either IPv4 or IPv6)
+        :type ip_addr: str
+        :returns: socket.AF_INET or socket.AF_INET6 for IP literals,
+            socket.AF_UNSPEC otherwise
+        :rtype: socket.AddressFamily
+
+    """
+    try:
+        # Scoped link-local literals ("fe80::1%en0") carry a zone id that
+        # ipaddress does not parse but getaddrinfo handles fine.
+        version = ipaddress.ip_address(ip_addr.split("%")[0]).version
+    except ValueError:
+        return socket.AF_UNSPEC
+    return socket.AF_INET6 if version == 6 else socket.AF_INET
 
 
 def nanosec_to_hours(ns):
@@ -2318,8 +2355,12 @@ class LifxDiscovery(aio.DatagramProtocol):
         :type parent: object
         :param loop: The asyncio loop being used
         :type loop: asyncio.AbstractEventLoop
-        :param: ipv6prefix: ipv6 network prefix to use
-        :type mipv6prefix: string
+        :param ipv6prefix: ipv6 network prefix to use. This derives an EUI-64
+            address from the MAC of a device discovered over IPv4 broadcast; it
+            cannot find Thread devices, whose addresses are not EUI-64 derived
+            and which never answer IPv4 broadcast. Connect to those directly by
+            their IPv6 address (e.g. from mDNS/zeroconf) instead.
+        :type ipv6prefix: string
         :param discovery_interval: How often, in seconds, to broadcast a discovery messages
         :type discovery_interval: int
         :param discovery_step: How often, in seconds, will the discovery process check if it is time to broadcast
@@ -2398,11 +2439,10 @@ class LifxDiscovery(aio.DatagramProtocol):
             return
 
         if self.ipv6prefix:
-            family = socket.AF_INET6
             remote_ip = mac_to_ipv6_linklocal(mac_addr, self.ipv6prefix)
         else:
-            family = socket.AF_INET
             remote_ip = response.ip_addr
+        family = address_family(remote_ip)
 
         if mac_addr in self.lights:
             # rediscovered

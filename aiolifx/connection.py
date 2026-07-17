@@ -1,6 +1,6 @@
 import asyncio
 
-from .aiolifx import UDP_BROADCAST_PORT, Light
+from .aiolifx import UDP_BROADCAST_PORT, Light, address_family
 
 
 class LIFXConnection:
@@ -18,6 +18,7 @@ class LIFXConnection:
         loop = asyncio.get_running_loop()
         self.transport, self.device = await loop.create_datagram_endpoint(
             lambda: Light(loop, self.mac, self.host),
+            family=address_family(self.host),
             remote_addr=(self.host, UDP_BROADCAST_PORT),
         )
 
