@@ -379,6 +379,18 @@ def unpack_lifx_message(packed_message):
             target_addr, source_id, seq_num, payload, ack_requested, response_requested
         )
 
+    elif message_type == MSG_IDS[SensorGetAmbientLight]:  # 401
+        message = SensorGetAmbientLight(
+            target_addr, source_id, seq_num, {}, ack_requested, response_requested
+        )
+
+    elif message_type == MSG_IDS[SensorStateAmbientLight]:  # 402
+        lux = struct.unpack("<f", payload_str[0:4])[0]
+        payload = {"lux": lux}
+        message = SensorStateAmbientLight(
+            target_addr, source_id, seq_num, payload, ack_requested, response_requested
+        )
+
     elif message_type == MSG_IDS[MultiZoneStateZone]:  # 503
         count = struct.unpack("c", payload_str[0:1])[0]
         count = ord(count)  # 8 bit
