@@ -157,6 +157,7 @@ class Device(aio.DatagramProtocol):
         self.host_firmware_build_timestamp = None
         self.wifi_firmware_version = None
         self.wifi_firmware_build_timestamp = None
+        self.ambient_light = None
         self.lastmsg = datetime.datetime.now()
 
     def seq_next(self):
@@ -729,6 +730,35 @@ class Device(aio.DatagramProtocol):
         """
         response = self.req_with_resp(GetWifiInfo, StateWifiInfo, callb=callb)
         return None
+
+    # Too volatile to be saved
+    def get_ambient_light(self, callb=None):
+        """Convenience method to request the ambient light level from the device
+
+        This method will request the ambient light level, in lux, as measured by
+        the device's sensor. A request is always sent to the device as the value
+        is volatile; the last known value is returned and self.ambient_light is
+        updated when the SensorStateAmbientLight response arrives.
+
+        Note that only some devices have an ambient light sensor (e.g. the LIFX
+        Switch). Devices without a sensor still respond, but always report 0.0.
+        The reported value is unreliable if the device's own light is on.
+
+            :param callb: Callable to be used when the response is received. If not set,
+                        self.resp_set_sensorambientlight will be used.
+            :type callb: callable
+            :returns: The last known ambient light level, in lux
+            :rtype: float
+        """
+        response = self.req_with_resp(
+            SensorGetAmbientLight, SensorStateAmbientLight, callb=callb
+        )
+        return self.ambient_light
+
+    def resp_set_sensorambientlight(self, resp):
+        """Default callback for get_ambient_light"""
+        if resp:
+            self.ambient_light = resp.lux
 
     def get_hostfirmware(self, callb=None):
         """Convenience method to request the device firmware info from the device

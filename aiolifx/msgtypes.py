@@ -1340,6 +1340,56 @@ class StateLastHevCycleResult(Message):
         return LAST_HEV_CYCLE_RESULT.get(self.result, "UNKNOWN")
 
 
+##### SENSOR MESSAGES #####
+
+
+class SensorGetAmbientLight(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload={},
+        ack_requested=False,
+        response_requested=False,
+    ):
+        super(SensorGetAmbientLight, self).__init__(
+            MSG_IDS[SensorGetAmbientLight],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+
+class SensorStateAmbientLight(Message):
+    def __init__(
+        self,
+        target_addr,
+        source_id,
+        seq_num,
+        payload,
+        ack_requested=False,
+        response_requested=False,
+    ):
+        self.lux = payload["lux"]
+        super(SensorStateAmbientLight, self).__init__(
+            MSG_IDS[SensorStateAmbientLight],
+            target_addr,
+            source_id,
+            seq_num,
+            ack_requested,
+            response_requested,
+        )
+
+    def get_payload(self):
+        self.payload_fields.append(("Lux", self.lux))
+        lux = little_endian(bitstring.pack("float:32", self.lux))
+        payload = lux
+        return payload
+
+
 ##### MULTIZONE MESSAGES #####
 
 
@@ -2464,6 +2514,8 @@ MSG_IDS = {
     StateHevCycleConfiguration: 147,
     GetLastHevCycleResult: 148,
     StateLastHevCycleResult: 149,
+    SensorGetAmbientLight: 401,
+    SensorStateAmbientLight: 402,
     MultiZoneSetColorZones: 501,
     MultiZoneGetColorZones: 502,
     MultiZoneStateZone: 503,
