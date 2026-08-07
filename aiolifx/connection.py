@@ -23,6 +23,12 @@ class LIFXConnection:
         )
 
     def async_stop(self):
-        """Close the transport."""
-        assert self.transport is not None
+        """Close the transport, if any.
+
+        Safe to call before setup, after a failed setup, or repeatedly,
+        so callers can always clean up without masking a setup error.
+        """
+        if self.transport is None:
+            return
         self.transport.close()
+        self.transport = None

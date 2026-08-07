@@ -8,7 +8,9 @@ message flow through Light/Device.
 """
 
 import asyncio
+import errno
 import socket
+from unittest import mock
 
 import pytest
 
@@ -139,6 +141,48 @@ class TestLIFXConnection:
             assert conn.device.mac_addr == MAC
         finally:
             conn.async_stop()
+
+
+class TestConnectionLifecycle:
+    """async_stop() must be safe whenever a caller tears down a connection.
+
+    When an IPv6 (Thread) route is missing, endpoint creation raises
+    OSError before a transport exists. Callers clean up by calling
+    async_stop(), which must not raise and must not mask the setup error.
+    """
+
+    async def test_async_stop_before_setup_is_noop(self):
+        conn = LIFXConnection("127.0.0.1", MAC)
+        conn.async_stop()
+        assert conn.transport is None
+
+    async def test_async_stop_after_failed_setup_does_not_mask_error(self):
+        conn = LIFXConnection("::1", MAC)
+        loop = asyncio.get_running_loop()
+        error = OSError(errno.ENETUNREACH, "Network is unreachable")
+        with mock.patch.object(loop, "create_datagram_endpoint", side_effect=error):
+            with pytest.raises(OSError) as excinfo:
+                await conn.async_setup()
+        assert excinfo.value is error
+        conn.async_stop()
+
+    async def test_async_stop_closes_transport(self):
+        conn = LIFXConnection("127.0.0.1", MAC)
+        await conn.async_setup()
+        transport = conn.transport
+        conn.async_stop()
+        assert transport.is_closing()
+        assert conn.transport is None
+
+    async def test_repeated_async_stop_closes_once(self):
+        conn = LIFXConnection("127.0.0.1", MAC)
+        await conn.async_setup()
+        transport = conn.transport
+        with mock.patch.object(transport, "close", wraps=transport.close) as close_mock:
+            conn.async_stop()
+            conn.async_stop()
+        assert close_mock.call_count == 1
+        assert transport.is_closing()
 
 
 class TestRequestResponse:
