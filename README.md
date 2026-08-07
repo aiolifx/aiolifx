@@ -97,8 +97,15 @@ Other things worth noting:
 
     - You can select to used IPv6 connection to the bulbs by passing an
       IPv6 prefix to LifxDiscovery. It's only been tried with /64 prefix.
-      If you want to use a /48 prefix, add ":" (colon) at the end of the
-      prefix and pray. (This means 2 colons at the end!)
+      Shorter prefixes (e.g. /48) are zero-filled; trailing colons on the
+      prefix are optional. This derives an EUI-64 address from the MAC of
+      a device discovered over IPv4 broadcast, so it cannot find
+      Thread-connected devices
+
+    - Devices that only have an IPv6 address (e.g. Thread devices reached
+      through a border router) can be used by passing their IPv6 address
+      directly to LIFXConnection (or Light), for instance an address
+      learned from an mDNS/zeroconf announcement of the _lifx._udp service
 
     - I only have Original 1000, so I could not test with other types
       of bulbs
@@ -113,6 +120,15 @@ Run this command each time you make changes to the project. It enters at `__main
 ```bash
 pip3 install . && aiolifx
 ```
+
+## Running the tests
+
+```bash
+pip3 install .[test] && pytest
+```
+
+Tests against real devices are opt-in; see `tests/test_live.py` for the
+environment variables that enable them.
 
 # Thanks
 

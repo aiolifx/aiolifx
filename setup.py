@@ -26,6 +26,12 @@ setuptools.setup(
         "click>=8.1.0,<8.2.0",
         "InquirerPy>=0.3.0,<0.4.0",
     ],
+    extras_require={
+        "test": [
+            "pytest",
+            "pytest-asyncio",
+        ],
+    },
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         # Pick your license as you wish (should match "license" above)

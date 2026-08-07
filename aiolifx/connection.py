@@ -1,6 +1,6 @@
 import asyncio
 
-from .aiolifx import UDP_BROADCAST_PORT, Light
+from .aiolifx import UDP_BROADCAST_PORT, Light, address_family
 
 
 class LIFXConnection:
@@ -18,10 +18,17 @@ class LIFXConnection:
         loop = asyncio.get_running_loop()
         self.transport, self.device = await loop.create_datagram_endpoint(
             lambda: Light(loop, self.mac, self.host),
+            family=address_family(self.host),
             remote_addr=(self.host, UDP_BROADCAST_PORT),
         )
 
     def async_stop(self):
-        """Close the transport."""
-        assert self.transport is not None
+        """Close the transport, if any.
+
+        Safe to call before setup, after a failed setup, or repeatedly,
+        so callers can always clean up without masking a setup error.
+        """
+        if self.transport is None:
+            return
         self.transport.close()
+        self.transport = None

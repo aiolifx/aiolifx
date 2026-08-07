@@ -626,7 +626,7 @@ async def amain():
     "-6",
     "--ipv6prefix",
     default=None,
-    help="Connect to Lifx using IPv6 with given /64 prefix (Do not end with colon unless you have less than 64bits).",
+    help="Connect to Lifx using IPv6 with given /64 prefix (trailing colons optional; shorter prefixes are zero-filled).",
 )
 @click.option(
     "-x",
