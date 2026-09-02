@@ -41,10 +41,7 @@ from .unpack import unpack_lifx_message
 # prevent tasks from being garbage collected
 _BACKGROUND_TASKS: Set[aio.Task] = set()
 
-if sys.version_info[:2] < (3, 11):
-    from async_timeout import timeout as asyncio_timeout
-else:
-    from asyncio import timeout as asyncio_timeout
+from asyncio import timeout as asyncio_timeout
 
 # A couple of constants
 LISTEN_IP = "0.0.0.0"
