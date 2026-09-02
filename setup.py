@@ -20,7 +20,6 @@ setuptools.setup(
     keywords=["lifx", "light", "automation"],
     license="MIT",
     install_requires=[
-        "async_timeout>=3.0.1",
         "bitstring",
         "ifaddr",
         "click>=8.1.0,<8.2.0",
@@ -35,6 +34,6 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
     ],
     entry_points={"console_scripts": ["aiolifx = aiolifx.__main__:cli"]},
-    python_requires=">=3.4",
+    python_requires=">=3.11",
     zip_safe=False,
 )
